@@ -1,0 +1,193 @@
+---
+title: "Statistical Modeling: IMDB's User Movie Ratings Analysis"
+author:
+- Juan Borgnino (jb3852)
+- Carolyn Morris (cm3491)
+- Jose Ramirez (jdr2162)
+- Manuel Rueda (mr3523)
+date: "December 15, 2015"
+abstract: |
+  In this analysis we take IMDB's movie rating and descriptive data, combine it with the Academy Awards' Best Picture nominations, and identify the driving variables behind a highly rated movie. A number of linear and non-linear models are utilized for this purpose. We identify the budget being a relevant variable for movies on the Animation and Action genres, but not on the rest. For all movies, the number of votes was the best predictor, implying that more popular movies tend to be rated higher (or the other way around). The number of 'Best Picture' nominations seems to play a minor but significant role.
+output: pdf_document
+---
+
+```{r global_options, include=FALSE}
+knitr::opts_chunk$set(fig.width=8, fig.height=6, echo=FALSE, warning=FALSE, message=FALSE)
+```
+
+```{r Setup}
+library("gettingtothebottom")
+library("RCurl")
+library("corrplot")
+library("GGally")
+library("reshape2")
+library("plyr")
+library("leaps")
+```
+
+
+```{r Data Processing}
+data("moviebudgets")
+## Remove the individual rating columns.
+movies <- moviebudgets[, !names(moviebudgets) %in% c("r1","r2","r3","r4","r5","r6","r7","r8","r9","r10")]
+movies$title <- as.character(movies$title)
+
+## Oscar awards.
+oscars <- read.csv("academy_awards.csv", stringsAsFactors = F)
+oscars$Year2 <- as.numeric(substr(oscars$Year, 0, 4))
+bestP <- oscars[oscars$Category == "Best Picture" & oscars$Year2 <= 2000,]
+movies$nominated <- rep(0, nrow(movies))
+movies[!is.na(match(gsub(", The", "", gsub('"', '', movies$title)), gsub("The ", "", bestP$Nominee))), "nominated"] =+ 1
+```
+
+\section{Data Sources}
+
+Our dataset consists on movie rating and budget data for 5,183 films, scraped from the [Internet Movie Database](http://www.imdb.com/interfaces/) FTP site, paired with a historical list of Academy Awards Best Picture Nominations, retrieved from [Agg Data](https://www.aggdata.com/awards/oscar). Both data sources are legaly made available to the general public. For our analysis, we are interested in analyzing the interactions between IMDB ratings assigned by the general public and a list of other possible explainatory variables, which are listed on the following table.
+
+------------------------------------------------------------
+Variable  Description
+--------- ---------------------------------------------------
+title     Title of the movie.
+ 
+year      Year the movie was released.
+ 
+budget    Total budget (if known) in US dollars.
+ 
+length    Length of movie (in minutes).
+
+rating    Average IMDb user rating.
+ 
+votes     Number of IMDb users who rated the movie.
+
+mpaa      MPAA rating.
+      
+nominated Binary variable indicating if the movie was
+          nominated for the 'Best Movie'.
+
+genre     Binary variables indicating whether movie belongs
+          to any of the following genres: action, animation,
+          comedy, drama, documentary, romance, short.
+------------------------------------------------------------
+
+\section{Exploratory Data Analysis}
+
+Before begining with the formal statistical analysis, it is useful to perform exploratory analysis on the data to identify possible patterns. We begin by looking at the summary information for each of the variables.
+
+```{r Summary Statistics}
+summary(movies)
+genres <- c("Action", "Animation", "Comedy", "Drama", "Documentary", "Romance", "Short")
+```
+
+We see a couple of interesting things here:
+
+(1) 25% of the movies have received less than 70 votes. We will remove this lower quantile, as we want to focus our attention on those films for which a larger consensus has been reached.
+
+
+```{r Data Cleaning}
+## Assign numerical variable to mpaa.
+mpMat <- data.frame(levels(movies$mpaa), c(1,4,2,3,5))
+names(mpMat) <- c("mpaa","mpnum")
+movies <- merge(movies, mpMat)
+movies = movies[, !names(movies) %in% c('mpaa')]
+
+## Remove movies with less than 100 votes.
+movies <- movies[movies$votes >= 70,]
+
+## Deflate budget variable.
+infl <- read.csv("infl.csv", stringsAsFactors = F)
+movies$adjBudget <- as.numeric(movies$budget / infl[match(movies$year, infl$Date),2] * 100, scientific=F)
+movies = movies[, !names(movies) %in% c('budget')]
+
+## Remove short films.
+movies <- movies[movies$Short == 0,]
+movies <- movies[, !names(movies) %in% c('Short')]
+
+## Remove outlying "Voyna i mir".
+movies <- movies[-which.max(movies$adjBudget),]
+
+## Remove titles column.
+movies <- movies[, !names(movies) %in% c('title')]
+```
+
+```{r EDA}
+## All movies.
+ggpairs(movies[c(3:6, 13:15)], 
+        diag=list(continuous="density", discrete="bar"),
+        axisLabels="none")
+
+allCorr <- cor(movies[3:ncol(movies)])
+allCorr["rating", abs(allCorr["rating",]) > 0.2]
+corrplot(allCorr, type="upper", order="hclust", tl.col="black", tl.srt=45)
+```
+
+\section{Test of Independence}
+
+```{r Test of Independence}
+
+## Melt the data to make the genres more readable.
+molten <- melt(movies, id.vars = c("title", "year", "length","rating", "votes", "adjBudget",
+                                   "mpnum", "nominated"), variable.name = "genre")
+molten <- molten[!molten$value == 0,]
+
+## Loop to see on which genres budget, votes and rating are independent.
+## This is equivalent to the cor.test function.
+voteTest <- function(x) {
+  r <- cor(x$rating, x$votes)
+  t <- (r * sqrt(nrow(x)-2)) / (sqrt(1-r^2))
+  o <- data.frame(r,t, qt(0.05/2, nrow(x)-2), nrow(x), abs(t) > abs(qt(0.05/2, nrow(x)-2)),1 - pt(t, nrow(x)-2))
+  colnames(o) <- c("r", "t", "t-crit", "n", "sig?", "p-value")
+  o
+}
+
+budgetTest <- function(x) {
+  r <- cor(x$rating, x$adjBudget)
+  t <- (r * sqrt(nrow(x)-2)) / (sqrt(1-r^2))
+  o <- data.frame(r,t, qt(0.05/2, nrow(x)-2), nrow(x), abs(t) > abs(qt(0.05/2, nrow(x)-2)), 1 - pt(t, nrow(x)-2))
+  colnames(o) <- c("r", "t", "t-crit", "n", "sig?", "p-value")
+  o
+}
+
+oscarTest <- function(x) {
+  r <- cor(x$rating, x$nominated)
+  t <- (r * sqrt(nrow(x)-2)) / (sqrt(1-r^2))
+  o <- data.frame(r,t, qt(0.05/2, nrow(x)-2), nrow(x), abs(t) > abs(qt(0.05/2, nrow(x)-2)), 1 - pt(t, nrow(x)-2))
+  colnames(o) <- c("r", "t", "t-crit", "n", "sig?", "p-value")
+  o
+}
+
+corrs <- ddply(.data=molten, .variables=.(genre), .fun=voteTest)
+print("rating vs. votes")
+corrs
+
+corrs <- ddply(.data=molten, .variables=.(genre), .fun=budgetTest)
+print("rating vs. budget")
+corrs
+
+corrs <- ddply(.data=molten, .variables=.(genre), .fun=oscarTest)
+print("rating vs. oscar")
+corrs
+```
+
+
+```{r (TRASH) best subset selection test}
+#Create Training set
+set.seed(1)
+train.index = sample(dim(movies)[1], round(dim(movies)[1]*0.8))
+test.index = c(1:dim(movies)[1])[-c(train.index)]
+train.set = movies[train.index, ]
+test.set = movies[test.index, ]
+
+#best subset selection and lm.
+train.set2=movies[train.set$Animation==1 | train.set$Action==1,]
+View(train.set2)
+lm.fit=lm(rating~.+I(log(votes)),data =train.set2 )
+summary(lm.fit)
+
+train.set2 <- train.set2[, !names(movies) %in% c('Action', 'Animation','Comedy','Drama','Documentary',
+                                                  'Romance')]
+
+regfit.best=regsubsets(rating~. + I(log(votes)),data=train.set2, nvmax =dim(train.set2)[2])
+reg.summary=summary(regfit.best)
+print(reg.summary)
+which.max(reg.summary$rsq)
+```
