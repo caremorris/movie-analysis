@@ -71,7 +71,7 @@ genre     Binary variables indicating whether movie belongs
 
 \section{Exploratory Data Analysis}
 
-Before begining with the formal statistical analysis, it is useful to perform exploratory analysis on the data to identify possible patterns. We begin by looking at the summary information for each of the variables.
+Before begining with the formal statistical analysis, it is necessary to perform exploratory analysis on the data to identify possible patterns. We begin by looking at the summary information for each of the variables.
 
 ```{r Summary Statistics}
 summary(movies)
@@ -191,3 +191,87 @@ reg.summary=summary(regfit.best)
 print(reg.summary)
 which.max(reg.summary$rsq)
 ```
+
+\section{Modeling}
+
+## Best Subset Selection
+
+
+## Correlation Matrix
+
+
+In our analysis, we explored four different methods for modeling the movie ratings: linear regression, polynomial regression, splines, and generalized additive models.
+
+## Linear Regression
+
+```{r}
+# Using all variables as predictors
+#lm.fit <- lm(rating ~., data = movies)
+#summary(lm.fit)
+# This uses titles, takes forever
+
+# Remove titles
+movies <- movies[-2]
+lm.fit <- lm(rating ~., data = movies)
+summary(lm.fit)
+```
+
+```{r}
+# Using only votes
+lm.fit <- lm(rating ~ votes, data = movies)
+summary(lm.fit)
+
+plot(votes, rating, pch = 20)
+abline(lm.fit, lwd = 3, col = 'red')
+
+# Consider only action and animation movies
+
+```
+
+## Polynomial Regression
+
+We extend the linear regression model by replacing it with a polynomial function. We determine which degree polynomial to use with the Analysis of Variance (ANOVA). ANOVA uses hypothesis tests to select the degree of polynomial. The null hypothesis is that model M1 is sufficient to explain the data; the alternative hypothesis is that the more complex model M2 is required. Note that M1 and M2 must be nested models, i.e. M1 is a subset of M2. If the p-value is greater than 0.05, then there is not enough evidence to reject the null, and we conclude that the simpler model, M1, is sufficient to explain the data.
+
+Log Votes
+```{r}
+fit.1 = lm(rating ~ log(votes), data = movies)
+fit.2 = lm(rating ~ poly(log(votes), 2), data = movies)
+fit.3 = lm(rating ~ poly(log(votes), 3), data = movies)
+fit.4 = lm(rating ~ poly(log(votes), 4), data = movies)
+fit.5 = lm(rating ~ poly(log(votes), 5), data = movies)
+anova(fit.1,fit.2,fit.3,fit.4,fit.5)
+```
+The best model using log(votes) is cubic.
+
+```{r}
+summary(fit.3)
+#predict(fit.3, interval = 'confidence')
+```
+R-squared: 0.19 --> explains 19% of the data
+
+Log Budget
+```{r}
+fit.1 = lm(rating ~ log(adjBudget), data = movies)
+fit.2 = lm(rating ~ poly(log(adjBudget), 2), data = movies)
+fit.3 = lm(rating ~ poly(log(adjBudget), 3), data = movies)
+fit.4 = lm(rating ~ poly(log(adjBudget), 4), data = movies)
+fit.5 = lm(rating ~ poly(log(adjBudget), 5), data = movies)
+anova(fit.1,fit.2,fit.3,fit.4,fit.5)
+```
+The best model using log(adjBudget) is cubic.
+
+```{r}
+summary(fit.3)
+```
+R-squared: 0.02 --> explains 2% of the data
+
+## Step Functions
+
+## Splines
+
+## GAMs
+
+
+# Which model was the best?
+
+
