@@ -195,6 +195,42 @@ which.max(reg.summary$rsq)
 \section{Modeling}
 
 ## Best Subset Selection
+library(ggplot2)
+library(leaps)
+best.subset = regsubsets(rating ~., train.set, nvmax = 11)
+
+mse.test.errors = vector()
+inter.column=rep(1,dim(test.set)[1])
+
+for(i in 1:(dim(train.set)[2] - 1)){
+  coef.best = coef(best.subset, id = i)
+  predic = as.matrix(cbind(inter.column,test.set[ , names(test.set) %in% c(names(coef.best))])) %*% coef.best[] 
+  errors = mean((test.set[,"rating"] - predic)^2)
+  mse.test.errors = cbind(mse.test.errors, errors)
+}
+#plot TEST MSE vs number of covariates
+qplot(x = c(1:(dim(train.set)[2] - 1)), y = as.numeric(mse.test.errors), main = 'Test MSE vs Number of Predictors', xlab = 'Nr. of Predictors',
+     ylab = 'Test MSE', geom = c("point", "path"))
+
+#best model obtained
+lm.fit = lm(rating ~ year + length + votes + Action + Animation + Comedy
+            + Drama + Documentary + adjBudget, data = train.set)
+par(mfrow = c(2,2))
+min(mse.test.errors)
+summary(lm.fit)
+#The residuals exhibit a clear inverted U-shape, which provides a strong indication of non-linearity in the data
+plot(lm.fit)
+
+#fit logarithm of votes
+lm.fit.log = lm(rating ~ year + length + I(log(votes)) + Action + Animation + Comedy
+            + Drama + Documentary + adjBudget, data = train.set)
+#there is no discernable pattern in the errors
+plot(lm.fit.log)
+fit.log.predic = predict(lm.fit.log, newdata = test.set[, !names(test.set) %in% c('rating')])
+#improved adjusted R squared and TEST MSE
+summary(lm.fit.log)
+MSE.test = mean((test.set$rating - fit.log.predic)^2)
+MSE.test
 
 
 ## Correlation Matrix
