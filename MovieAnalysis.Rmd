@@ -537,4 +537,24 @@ R-squared: 0.02 --> explains 2% of the data
 
 ### GAMs
 
-### Which model was the best?
+# Conclusion
+
+## Which model was the best?
+
+------------------------------------------------------------
+Model                     Test MSE
+------------------------- ----------------------------------
+Linear Regression           0.981
+- using subset selection
+- with log(votes)
+
+Polynomial Regression       8.334
+- with votes       
+
+Polynomial Regresssion      0.937
+- using subset selection
+ 
+Spline                      4.449
+
+GAM                         blah
+------------------------------------------------------------
