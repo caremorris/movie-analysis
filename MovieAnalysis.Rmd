@@ -216,12 +216,14 @@ The main observations from this analysis:
 * Movies that have been nominated for Best Picture also tend to receive better ratings.
 
 ### Correlations Across Variables
-We have seen that ratings across different genres exhibit different correlations, but it would be good to have a more formal proof 
+We have seen that ratings across different genres exhibit different correlations, but it would be good to have a more formal proof to check if the distributions of votes are the same among these different categories. For this we can use the Mann–Whitney–Wilcoxon statistic, which will test for:
+
+$P(Y \leq y) = P(X + \delta \leq y) = F(y - \delta).$
 
 
-# Modeling
+\section{Modeling}
 
-### Best Subset Selection
+## Best Subset Selection
 ```{r}
 #Create Training set
 set.seed(1)
@@ -233,7 +235,7 @@ test.set = movies[test.index, ]
 mse.test.errors = vector()
 inter.column=rep(1,dim(test.set)[1])
 
-best.subset = regsubsets(rating ~., train.set, nvmax = 12)
+best.subset = regsubsets(rating ~., train.set, nvmax = 11)
 
 ```
 
@@ -279,11 +281,11 @@ MSE.test = mean((test.set$rating - fit.log.predic)^2)
 MSE.test
 ```
 
-### Correlation Matrix
+## Correlation Matrix
 
 In our analysis, we explored four different methods for modeling the movie ratings: linear regression, polynomial regression, splines, and Generalized Additive Models (GAMs).
 
-### Linear Regression
+## Linear Regression
 
 ```{r}
 # Using all variables as predictors
@@ -309,7 +311,7 @@ abline(lm.fit, lwd = 3, col = 'red')
 
 ```
 
-### Polynomial Regression
+## Polynomial Regression
 
 We extend the linear regression model by replacing it with a polynomial function. We determine which degree polynomial to use with the Analysis of Variance (ANOVA). ANOVA uses hypothesis tests to select the degree of polynomial. The null hypothesis is that model M1 is sufficient to explain the data; the alternative hypothesis is that the more complex model M2 is required. Note that M1 and M2 must be nested models, i.e. M1 is a subset of M2. If the p-value is greater than 0.05, then there is not enough evidence to reject the null, and we conclude that the simpler model, M1, is sufficient to explain the data.
 
@@ -329,7 +331,6 @@ anova(fit.1, fit.2, fit.3, fit.4, fit.5)
 
 
 We use the model obtained to predict on our test set. We obtain a Test MSE of 0.936, which is an improvement from the model without the polynomial of degree 3.
-
 ```{r}
 train.fit.3 = lm(rating ~ year + length + Action + Animation + Comedy
            + Drama + Documentary + adjBudget + poly(log(votes), 3), data = train.set)
@@ -341,7 +342,6 @@ MSE.test.fit.3
 ```
 
 The variable votes seems to be a very important variable to explain the response. We regress ratings onto a polynomial of degree 3 of votes and observe that the adjusted R square is of almost 20%. Hence, we consider interesting to visualize how does this curve fit the response on a graph.
-
 ```{r}
 lm.log.votes.3 = lm(rating ~ poly(log.votes,3), data = movies)
 summary(lm.log.votes.3)
@@ -349,7 +349,10 @@ summary(lm.log.votes.3)
 ```
 
 The first graph is produced by fitting a polynomial of degree 3, while the graph on the rigth is produced fitting a regular line. It is very clear, how the polynomial of degree 3 allows us to fit a more flexible curve that fits the data better.
+<<<<<<< HEAD
 
+=======
+>>>>>>> master
 ```{r}
 par(mfrow = c(1,2))
 poly.fit = lm(rating ~ poly(log.votes, 3), data = movies)
@@ -372,7 +375,10 @@ matlines(vote.grid, lin.bands, lwd = 2, col = 'red')
 ```
 
 We compute the test error using the polynomial of degree three only using votes as predictor.
+<<<<<<< HEAD
 
+=======
+>>>>>>> master
 ```{r}
 poly.train = lm(rating ~ poly(log(votes),3), data = train.set)
 poly.test = predict(poly.train, newdata = list(votes = log(test.set$votes)))
@@ -380,7 +386,10 @@ test.error = mean((poly.test - test.set$rating)^2)
 test.error
 ```
 
+<<<<<<< HEAD
 Next we fit a cubic spline to the data. We start by using cross-validation to obtain the degrees of freedom which minimize the test error. We find that 7 degrees of freedom provide us the lowest estimated test error.
+=======
+>>>>>>> master
 
 Next we fit a cubic spline to the data. We start by using cross-validation to obtain the degrees of freedom which minimize the test error. We find that 7 degrees of freedom provide us the lowest estimated test error.
 ```{r}
@@ -394,7 +403,10 @@ spline.best.df = which.min(cross.spline)
 ```
 
 Points were we will fit the 4 knots.
+<<<<<<< HEAD
 
+=======
+>>>>>>> master
 ```{r}
 attr(bs(log(movies$votes) ,df = spline.best.df) ,"knots") 
 ```
@@ -444,50 +456,17 @@ abline(v = c(attr(ns(log(movies$votes) ,df=7) ,"knots")) , col = 'darkorange', l
 ```
 
 
+<<<<<<< HEAD
 Next we fit a spline to the data
+=======
 
-```{r}
-library(splines)
-spline.fit = lm(rating ~ bs(log.votes, df = spline.best.df), data = movies)
-spline.predict = predict(spline.fit, newdata = list(log.votes = vote.grid))
-summary(spline.fit)
-
-plot(movies$log.votes, movies$rating, col = 'darkgrey', xlab = 'Votes', ylab = 'Rating', main = 'Cubic Sline with 4 Knots')
-lines(vote.grid, spline.predict, col = 'darkgreen', lwd = 2)
-abline(v = c(attr(bs(log(movies$votes) ,df=7) ,"knots") ), col = 'darkorange', lty = 2, lwd = 2)
-plot(movies$log.votes, movies$rating, col = 'darkgrey', xlab = 'Votes', ylab = 'Rating', main = 'Polynomial of d = 3')
-lines(vote.grid, predict.poly$fit, lwd = 2, col = 'darkblue')
-
-```
-
-We obtain a very high test error using cubic splines.
-
-```{r}
-spline.train = lm(rating ~ bs(log(votes), df = 6), data = train.set)
-spline.test = predict(spline.train, newdata = list(votes = log(test.set$votes)))
-spline.error = mean((spline.test - test.set$rating)^2)
-spline.error
-```
-
-```{r}
-cross.spline = rep(NA, 12)
-for (i in 5:16) {
-  fiting = glm(rating ~ ns(log(votes), df = i), data = movies)
-  cross.spline[i] = cv.glm(movies, fiting, K = 10)$delta[2]
-}
-ns.best.df = which.min(cross.spline)
-```
+>>>>>>> master
 
 
-```{r}
-ns.fit = lm(rating ~ ns(log(votes), df = ns.best.df), data = movies)
-ns.predict = predict(ns.fit, newdata = list(votes = list(log.votes = vote.grid)))
-summary(ns.fit)
 
-plot(log(movies$votes), movies$rating, col = 'darkgrey', xlab = 'Votes', ylab = 'Rating', main = 'Votes vs Rating')
-lines(seq(min(movies$votes), max(movies$votes)), ns.predict, col = 'darkgreen', lwd = 2)
-abline(v = c(attr(ns(log(movies$votes) ,df=7) ,"knots")) , col = 'darkorange', lty = 2, lwd = 2)
-```
+
+
+
 
 The best model using log(votes) is cubic.
 
@@ -511,9 +490,9 @@ The best model using log(adjBudget) is cubic.
 ```{r}
 summary(fit.3)
 ```
-
 R-squared: 0.02 --> explains 2% of the data
 
+<<<<<<< HEAD
 ### GAMs
 We will now explore General Additive Models (GAMs). These extend the multiple linear regression model by allowing non-linear functions of each variable. We calculate a different function for each variable, and add together all of their contributions. This results in potentially more accurate predictions for our response variable, the movie rating. Furthermore, since the model is additive, we can interpret the effects of each variable on the movie rating.    
 
@@ -609,3 +588,13 @@ GAM                         0.944
 GAM                         0.974
 - natural splines
 ------------------------------------------------------------
+=======
+## Step Functions
+
+## Splines
+
+## GAMs
+
+
+# Which model was the best?
+>>>>>>> master
