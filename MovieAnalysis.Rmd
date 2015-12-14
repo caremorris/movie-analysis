@@ -310,29 +310,27 @@ summary(lm.log.votes.3)
 
 ```
 
+The first graph is produced by fitting a polynomial of degree 3, while the graph on the rigth is produced fitting a regular line. It is very clear, how the polynomial of degree 3 allows us to fit a more flexible curve that fits the data better.
 ```{r}
-
-```
-
-par(mfrow = c(1,1))
+par(mfrow = c(1,2))
 poly.fit = lm(rating ~ poly(log.votes, 3), data = movies)
+lm.votes.fit = lm(rating ~ log.votes, data = movies)
 vote.lims = range(movies$log.votes)
 vote.grid = seq(from=vote.lims [1], to=vote.lims[2]) 
 
-summary(poly.fit)
-
+predict.linear = predict(lm.votes.fit, newdata = list(log.votes = vote.grid), se = T)
+lin.bands = cbind(predict.linear$fit + 2*predict.linear$se,  predict.linear$fit - 2*predict.linear$se)
 predict = predict(poly.fit, newdata = list(log.votes = vote.grid), se = T)
 se.bands = cbind(predict$fit + 2*predict$se,  predict$fit - 2*predict$se)
 
-plot(movies$log.votes, movies$rating, col = 'darkgrey', xlab = 'Votes', ylab = 'Rating', main = 'Votes vs Rating')
-lines(vote.grid, predict$fit, lwd = 2, col = 'blue')
+plot(movies$log.votes, movies$rating, col = 'darkgrey', xlab = 'Votes', ylab = 'Rating', main = 'Polynomial of d = 3')
+lines(vote.grid, predict$fit, lwd = 2, col = 'darkblue')
 matlines(vote.grid, se.bands, lwd = 2, col = 'red')
+plot(movies$log.votes, movies$rating, col = 'darkgrey', xlab = 'Votes', ylab = 'Rating', main = 'Linear Regression')
+lines(vote.grid, predict.linear$fit, lwd = 2, col = 'darkblue')
+matlines(vote.grid, lin.bands, lwd = 2, col = 'red')
 
-
-
-
-
-
+```
 
 
 The best model using log(votes) is cubic.
