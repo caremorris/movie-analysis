@@ -208,43 +208,56 @@ which.max(reg.summary$rsq)
 \section{Modeling}
 
 ## Best Subset Selection
+```{r}
 library(ggplot2)
 library(leaps)
-best.subset = regsubsets(rating ~., train.set, nvmax = 11)
-
 mse.test.errors = vector()
 inter.column=rep(1,dim(test.set)[1])
 
+best.subset = regsubsets(rating ~., train.set, nvmax = 11)
+
+```
+
+
+We plot each model obtained using best subset selection againts the test MSE to obtain the best model of all
+```{r}
 for(i in 1:(dim(train.set)[2] - 1)){
   coef.best = coef(best.subset, id = i)
   predic = as.matrix(cbind(inter.column,test.set[ , names(test.set) %in% c(names(coef.best))])) %*% coef.best[] 
   errors = mean((test.set[,"rating"] - predic)^2)
   mse.test.errors = cbind(mse.test.errors, errors)
 }
-#plot TEST MSE vs number of covariates
 qplot(x = c(1:(dim(train.set)[2] - 1)), y = as.numeric(mse.test.errors), main = 'Test MSE vs Number of Predictors', xlab = 'Nr. of Predictors',
      ylab = 'Test MSE', geom = c("point", "path"))
 
-#best model obtained
+```
+
+
+This is the best model obtained. It includes variables year, length, votes, Action, Animation, Comedy,
+Dramam, Documentary and adjBudget. As we can observe, all predictors are related to the response and we are obtaining an adjusted R squared value of 0.402, meaning that our model is explaining 40% of the variance of the rating, and a Test MSE of 1.092. However, plotting the residuals we find evidence of a non linear relationship between the predictors and the response. 
+```{r}
 lm.fit = lm(rating ~ year + length + votes + Action + Animation + Comedy
             + Drama + Documentary + adjBudget, data = train.set)
 par(mfrow = c(2,2))
 min(mse.test.errors)
 summary(lm.fit)
-#The residuals exhibit a clear inverted U-shape, which provides a strong indication of non-linearity in the data
 plot(lm.fit)
+```
 
-#fit logarithm of votes
+
+We try taking the logarithm of the variables votes. We observe that there is no discernable pattern in the distribution of the errors. 
+```{r}
 lm.fit.log = lm(rating ~ year + length + I(log(votes)) + Action + Animation + Comedy
             + Drama + Documentary + adjBudget, data = train.set)
-#there is no discernable pattern in the errors
 plot(lm.fit.log)
-fit.log.predic = predict(lm.fit.log, newdata = test.set[, !names(test.set) %in% c('rating')])
-#improved adjusted R squared and TEST MSE
+```
+
+Finally, we also observe an important improvements in terms of Adjusted R squared, since it increased aprox 8%, and the Test MSE error I now 0.98.
+```{r}
 summary(lm.fit.log)
 MSE.test = mean((test.set$rating - fit.log.predic)^2)
 MSE.test
-
+```
 
 ## Correlation Matrix
 
@@ -283,13 +296,64 @@ We extend the linear regression model by replacing it with a polynomial function
 
 Log Votes
 ```{r}
-fit.1 = lm(rating ~ log(votes), data = movies)
-fit.2 = lm(rating ~ poly(log(votes), 2), data = movies)
-fit.3 = lm(rating ~ poly(log(votes), 3), data = movies)
-fit.4 = lm(rating ~ poly(log(votes), 4), data = movies)
-fit.5 = lm(rating ~ poly(log(votes), 5), data = movies)
-anova(fit.1,fit.2,fit.3,fit.4,fit.5)
+fit.1 = lm(rating ~ year + length + Action + Animation + Comedy
+           + Drama + Documentary + adjBudget + log.votes, data = movies)
+fit.2 = lm(rating ~ year + length + Action + Animation + Comedy
+           + Drama + Documentary + adjBudget + poly(log.votes, 2), data = movies)
+fit.3 = lm(rating ~ year + length + Action + Animation + Comedy
+           + Drama + Documentary + adjBudget + poly(log.votes, 3), data = movies)
+fit.4 = lm(rating ~ year + length + Action + Animation + Comedy
+           + Drama + Documentary + adjBudget + poly(log.votes, 4), data = movies)
+fit.5 = lm(rating ~ year + length + Action + Animation + Comedy
+           + Drama + Documentary + adjBudget + poly(log.votes, 5), data = movies)
+anova(fit.1, fit.2, fit.3, fit.4, fit.5)
 ```
+
+
+
+We use the model obtained to predict on our test set. We obtain a Test MSE of 0.936, which is an improvement from the model without the polynomial of degree 3.
+```{r}
+train.fit.3 = lm(rating ~ year + length + Action + Animation + Comedy
+           + Drama + Documentary + adjBudget + poly(log(votes), 3), data = train.set)
+
+test.fit.3 = predict(train.fit.3, newdata = test.set[, !names(test.set) %in% c('rating')])
+MSE.test.fit.3 = mean((test.set$rating - test.fit.3)^2)
+MSE.test.fit.3
+
+```
+
+The variable votes seems to be a very important variable to explain the response. We regress ratings onto a polynomial of degree 3 of votes and observe that the adjusted R square is of almost 20%. Hence, we consider interesting to visualize how does this curve fit the response on a graph.
+```{r}
+lm.log.votes.3 = lm(rating ~ poly(log.votes,3), data = movies)
+summary(lm.log.votes.3)
+
+```
+
+```{r}
+
+```
+
+par(mfrow = c(1,1))
+poly.fit = lm(rating ~ poly(log.votes, 3), data = movies)
+vote.lims = range(movies$log.votes)
+vote.grid = seq(from=vote.lims [1], to=vote.lims[2]) 
+
+summary(poly.fit)
+
+predict = predict(poly.fit, newdata = list(log.votes = vote.grid), se = T)
+se.bands = cbind(predict$fit + 2*predict$se,  predict$fit - 2*predict$se)
+
+plot(movies$log.votes, movies$rating, col = 'darkgrey', xlab = 'Votes', ylab = 'Rating', main = 'Votes vs Rating')
+lines(vote.grid, predict$fit, lwd = 2, col = 'blue')
+matlines(vote.grid, se.bands, lwd = 2, col = 'red')
+
+
+
+
+
+
+
+
 The best model using log(votes) is cubic.
 
 ```{r}
