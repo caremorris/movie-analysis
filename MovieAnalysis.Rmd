@@ -73,15 +73,22 @@ genre     Binary variables indicating whether movie belongs
 
 Before begining with the formal statistical analysis, it is necessary to perform exploratory analysis on the data to identify possible patterns. We begin by looking at the summary information for each of the variables.
 
-```{r Summary Statistics}
+```{r Summary Statistics, cache = T}
 summary(movies)
+
 genres <- c("Action", "Animation", "Comedy", "Drama", "Documentary", "Romance", "Short")
+
+ggpairs(movies[,!names(movies) %in% c(genres, "title")], 
+        diag=list(continuous="density", discrete="bar"),
+        axisLabels="none")
 ```
 
 We see a couple of interesting things here:
 
-(1) 25% of the movies have received less than 70 votes. We will remove this lower quantile, as we want to focus our attention on those films for which a larger consensus has been reached.
-
+(1) 25% of the movies have received less than 70 *votes*. We will remove this lower quantile, as we want to focus our attention on those films for which a larger consensus has been reached.
+(2) On the *length* column, we can see a cluster of short films on the right hand side of the plots. They clearly have a different behavior than full-feature ones, so we will exclude them from the analysis.
+(3) The *mpaa* variable has 4 categorical variables, each corresponding to a rating. We will replace this with MPNUM (0: n/a, 1: PG, 2:PG-13, 3:NC-17, 4:R).
+(4) The *budget* variable is defined on US dollars, but has not been adjusted for inflation. We will retrieve the yearly CPI data to convert this series into nominal terms.
 
 ```{r Data Cleaning}
 ## Assign numerical variable to mpaa.
@@ -90,7 +97,7 @@ names(mpMat) <- c("mpaa","mpnum")
 movies <- merge(movies, mpMat)
 movies = movies[, !names(movies) %in% c('mpaa')]
 
-## Remove movies with less than 100 votes.
+## Remove movies with less than 70 votes.
 movies <- movies[movies$votes >= 70,]
 
 ## Deflate budget variable.
@@ -102,16 +109,22 @@ movies = movies[, !names(movies) %in% c('budget')]
 movies <- movies[movies$Short == 0,]
 movies <- movies[, !names(movies) %in% c('Short')]
 
-## Remove outlying "Voyna i mir".
-movies <- movies[-which.max(movies$adjBudget),]
-
 ## Remove titles column.
 movies <- movies[, !names(movies) %in% c('title')]
 ```
 
+After proceding with these changes, we identified one extreme outlier in terms of nominal budget: "Voyna i mir", or "War & Peace" (1996). 
+
+```{r Voyna i mir, fig.width=6, fig.height=3}
+qplot(movies$adjBudget)
+
+## Remove outlying "Voyna i mir".
+movies <- movies[-which.max(movies$adjBudget),]
+```
+
 ```{r EDA}
 ## All movies.
-ggpairs(movies[c(3:6, 13:15)], 
+ggpairs(movies[,!names(movies) %in% c(genres, "title")], 
         diag=list(continuous="density", discrete="bar"),
         axisLabels="none")
 
