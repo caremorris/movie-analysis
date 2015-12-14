@@ -536,6 +536,25 @@ R-squared: 0.02 --> explains 2% of the data
 ### Splines
 
 ### GAMs
+We will now explore General Additive Models (GAMs). These extend the multiple linear regression model by allowing non-linear functions of each variable. We calculate a different function for each variable, and add together all of their contributions. This results in potentially more accurate predictions for our response variable, the movie rating. Furthermore, since the model is additive, we can interpret the effects of each variable on the movie rating.    
+
+We now fit a GAM to predict wage using different combinations of smoothing spline functions of votes, length, and budget.
+```{r}
+library(gam)
+fit.1 = gam(rating ~ votes + length + adjBudget, data = movies)
+fit.2 = gam(rating ~ s(votes, df = 4) + length + adjBudget, data = movies)
+fit.3 = gam(rating ~ s(votes, df = 4) + s(length, df = 4) + adjBudget, data = movies)
+fit.4 = gam(rating ~ s(votes, df = 4) + s(length, df = 4) + s(adjBudget, df = 4), data = movies)
+
+anova(fit.1, fit.2, fit.3, fit.4)
+```
+Based on the restuls of this ANOVA, there is evidence that the GAM with a smoothing spline of each variable (votes, length, adjBudget), is the best model.
+
+```{r}
+par(mfrow = c(1,3))
+plot(fit.4, se = T, col = 'red')
+summary(fit.4)
+```
 
 # Conclusion
 
