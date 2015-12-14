@@ -349,7 +349,10 @@ summary(lm.log.votes.3)
 ```
 
 The first graph is produced by fitting a polynomial of degree 3, while the graph on the rigth is produced fitting a regular line. It is very clear, how the polynomial of degree 3 allows us to fit a more flexible curve that fits the data better.
+<<<<<<< HEAD
 
+=======
+>>>>>>> 096dd46dd20c1ee9dbfe085cd2b4d82505fda938
 ```{r}
 par(mfrow = c(1,2))
 poly.fit = lm(rating ~ poly(log.votes, 3), data = movies)
@@ -372,7 +375,10 @@ matlines(vote.grid, lin.bands, lwd = 2, col = 'red')
 ```
 
 We compute the test error using the polynomial of degree three only using votes as predictor.
+<<<<<<< HEAD
 
+=======
+>>>>>>> 096dd46dd20c1ee9dbfe085cd2b4d82505fda938
 ```{r}
 poly.train = lm(rating ~ poly(log(votes),3), data = train.set)
 poly.test = predict(poly.train, newdata = list(votes = log(test.set$votes)))
@@ -380,8 +386,13 @@ test.error = mean((poly.test - test.set$rating)^2)
 test.error
 ```
 
+<<<<<<< HEAD
 Next we fit a cubic spline to the data. We start by using cross-validation to obtain the degrees of freedom which minimize the test error. We find that 7 degrees of freedom provide us the lowest estimated test error.
 
+=======
+
+Next we fit a cubic spline to the data. We start by using cross-validation to obtain the degrees of freedom which minimize the test error. We find that 7 degrees of freedom provide us the lowest estimated test error.
+>>>>>>> 096dd46dd20c1ee9dbfe085cd2b4d82505fda938
 ```{r}
 library(boot)
 cross.spline = rep(NA, 12)
@@ -393,10 +404,62 @@ spline.best.df = which.min(cross.spline)
 ```
 
 Points were we will fit the 4 knots.
+<<<<<<< HEAD
 
 ```{r}
 attr(bs(log(movies$votes) ,df = spline.best.df) ,"knots") 
 ```
+=======
+```{r}
+attr(bs(log(movies$votes) ,df = spline.best.df) ,"knots") 
+```
+
+Next we fit a spline to the data
+```{r}
+library(splines)
+spline.fit = lm(rating ~ bs(log.votes, df = spline.best.df), data = movies)
+spline.predict = predict(spline.fit, newdata = list(log.votes = vote.grid))
+summary(spline.fit)
+
+plot(movies$log.votes, movies$rating, col = 'darkgrey', xlab = 'Votes', ylab = 'Rating', main = 'Cubic Sline with 4 Knots')
+lines(vote.grid, spline.predict, col = 'darkgreen', lwd = 2)
+abline(v = c(attr(bs(log(movies$votes) ,df=7) ,"knots") ), col = 'darkorange', lty = 2, lwd = 2)
+plot(movies$log.votes, movies$rating, col = 'darkgrey', xlab = 'Votes', ylab = 'Rating', main = 'Polynomial of d = 3')
+lines(vote.grid, predict.poly$fit, lwd = 2, col = 'darkblue')
+
+```
+
+We obtain a very high test error using cubic splines.
+```{r}
+spline.train = lm(rating ~ bs(log(votes), df = 6), data = train.set)
+spline.test = predict(spline.train, newdata = list(votes = log(test.set$votes)))
+spline.error = mean((spline.test - test.set$rating)^2)
+spline.error
+```
+
+
+```{r}
+cross.spline = rep(NA, 12)
+for (i in 5:16) {
+  fiting = glm(rating ~ ns(log(votes), df = i), data = movies)
+  cross.spline[i] = cv.glm(movies, fiting, K = 10)$delta[2]
+}
+ns.best.df = which.min(cross.spline)
+```
+
+
+```{r}
+ns.fit = lm(rating ~ ns(log(votes), df = ns.best.df), data = movies)
+ns.predict = predict(ns.fit, newdata = list(votes = list(log.votes = vote.grid)))
+summary(ns.fit)
+
+plot(log(movies$votes), movies$rating, col = 'darkgrey', xlab = 'Votes', ylab = 'Rating', main = 'Votes vs Rating')
+lines(seq(min(movies$votes), max(movies$votes)), ns.predict, col = 'darkgreen', lwd = 2)
+abline(v = c(attr(ns(log(movies$votes) ,df=7) ,"knots")) , col = 'darkorange', lty = 2, lwd = 2)
+```
+
+
+>>>>>>> 096dd46dd20c1ee9dbfe085cd2b4d82505fda938
 
 Next we fit a spline to the data
 
