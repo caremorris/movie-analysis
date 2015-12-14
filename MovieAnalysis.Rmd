@@ -233,7 +233,7 @@ test.set = movies[test.index, ]
 mse.test.errors = vector()
 inter.column=rep(1,dim(test.set)[1])
 
-best.subset = regsubsets(rating ~., train.set, nvmax = 11)
+best.subset = regsubsets(rating ~., train.set, nvmax = 12)
 
 ```
 
