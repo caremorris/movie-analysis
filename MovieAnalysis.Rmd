@@ -281,7 +281,7 @@ MSE.test
 
 ### Correlation Matrix
 
-In our analysis, we explored four different methods for modeling the movie ratings: linear regression, polynomial regression, splines, and generalized additive models.
+In our analysis, we explored four different methods for modeling the movie ratings: linear regression, polynomial regression, splines, and Generalized Additive Models (GAMs).
 
 ### Linear Regression
 
@@ -349,10 +349,7 @@ summary(lm.log.votes.3)
 ```
 
 The first graph is produced by fitting a polynomial of degree 3, while the graph on the rigth is produced fitting a regular line. It is very clear, how the polynomial of degree 3 allows us to fit a more flexible curve that fits the data better.
-<<<<<<< HEAD
 
-=======
->>>>>>> 096dd46dd20c1ee9dbfe085cd2b4d82505fda938
 ```{r}
 par(mfrow = c(1,2))
 poly.fit = lm(rating ~ poly(log.votes, 3), data = movies)
@@ -375,10 +372,7 @@ matlines(vote.grid, lin.bands, lwd = 2, col = 'red')
 ```
 
 We compute the test error using the polynomial of degree three only using votes as predictor.
-<<<<<<< HEAD
 
-=======
->>>>>>> 096dd46dd20c1ee9dbfe085cd2b4d82505fda938
 ```{r}
 poly.train = lm(rating ~ poly(log(votes),3), data = train.set)
 poly.test = predict(poly.train, newdata = list(votes = log(test.set$votes)))
@@ -386,13 +380,9 @@ test.error = mean((poly.test - test.set$rating)^2)
 test.error
 ```
 
-<<<<<<< HEAD
 Next we fit a cubic spline to the data. We start by using cross-validation to obtain the degrees of freedom which minimize the test error. We find that 7 degrees of freedom provide us the lowest estimated test error.
 
-=======
-
 Next we fit a cubic spline to the data. We start by using cross-validation to obtain the degrees of freedom which minimize the test error. We find that 7 degrees of freedom provide us the lowest estimated test error.
->>>>>>> 096dd46dd20c1ee9dbfe085cd2b4d82505fda938
 ```{r}
 library(boot)
 cross.spline = rep(NA, 12)
@@ -404,12 +394,7 @@ spline.best.df = which.min(cross.spline)
 ```
 
 Points were we will fit the 4 knots.
-<<<<<<< HEAD
 
-```{r}
-attr(bs(log(movies$votes) ,df = spline.best.df) ,"knots") 
-```
-=======
 ```{r}
 attr(bs(log(movies$votes) ,df = spline.best.df) ,"knots") 
 ```
@@ -458,8 +443,6 @@ lines(seq(min(movies$votes), max(movies$votes)), ns.predict, col = 'darkgreen', 
 abline(v = c(attr(ns(log(movies$votes) ,df=7) ,"knots")) , col = 'darkorange', lty = 2, lwd = 2)
 ```
 
-
->>>>>>> 096dd46dd20c1ee9dbfe085cd2b4d82505fda938
 
 Next we fit a spline to the data
 
@@ -531,10 +514,6 @@ summary(fit.3)
 
 R-squared: 0.02 --> explains 2% of the data
 
-### Step Functions
-
-### Splines
-
 ### GAMs
 We will now explore General Additive Models (GAMs). These extend the multiple linear regression model by allowing non-linear functions of each variable. We calculate a different function for each variable, and add together all of their contributions. This results in potentially more accurate predictions for our response variable, the movie rating. Furthermore, since the model is additive, we can interpret the effects of each variable on the movie rating.    
 
@@ -554,6 +533,10 @@ Based on the restuls of this ANOVA, there is evidence that the GAM with a smooth
 par(mfrow = c(1,3))
 plot(fit.4, se = T, col = 'red')
 summary(fit.4)
+```
+
+```{r}
+
 ```
 
 # Conclusion
