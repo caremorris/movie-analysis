@@ -116,7 +116,7 @@ movies <- movies[, !names(movies) %in% c('title')]
 After proceding with these changes, we identified one extreme outlier in terms of nominal budget: "Voyna i mir", or "War & Peace" (1996). 
 
 ```{r Voyna i mir, fig.width=6, fig.height=3}
-qplot(movies$adjBudget)
+ggplot(data=movies, aes(adjBudget, votes)) + geom_point()
 
 ## Remove outlying "Voyna i mir".
 movies <- movies[-which.max(movies$adjBudget),]
@@ -138,7 +138,7 @@ corrplot(allCorr, type="upper", order="hclust", tl.col="black", tl.srt=45)
 ```{r Test of Independence}
 
 ## Melt the data to make the genres more readable.
-molten <- melt(movies, id.vars = c("title", "year", "length","rating", "votes", "adjBudget",
+molten <- melt(movies, id.vars = c("year", "length","rating", "votes", "adjBudget",
                                    "mpnum", "nominated"), variable.name = "genre")
 molten <- molten[!molten$value == 0,]
 
@@ -181,8 +181,10 @@ print("rating vs. oscar")
 corrs
 ```
 
+\section{Modeling}
 
-```{r (TRASH) best subset selection test}
+## Best Subset Selection
+```{r}
 #Create Training set
 set.seed(1)
 train.index = sample(dim(movies)[1], round(dim(movies)[1]*0.8))
@@ -190,27 +192,6 @@ test.index = c(1:dim(movies)[1])[-c(train.index)]
 train.set = movies[train.index, ]
 test.set = movies[test.index, ]
 
-#best subset selection and lm.
-train.set2=movies[train.set$Animation==1 | train.set$Action==1,]
-View(train.set2)
-lm.fit=lm(rating~.+I(log(votes)),data =train.set2 )
-summary(lm.fit)
-
-train.set2 <- train.set2[, !names(movies) %in% c('Action', 'Animation','Comedy','Drama','Documentary',
-                                                  'Romance')]
-
-regfit.best=regsubsets(rating~. + I(log(votes)),data=train.set2, nvmax =dim(train.set2)[2])
-reg.summary=summary(regfit.best)
-print(reg.summary)
-which.max(reg.summary$rsq)
-```
-
-\section{Modeling}
-
-## Best Subset Selection
-```{r}
-library(ggplot2)
-library(leaps)
 mse.test.errors = vector()
 inter.column=rep(1,dim(test.set)[1])
 
@@ -218,8 +199,8 @@ best.subset = regsubsets(rating ~., train.set, nvmax = 11)
 
 ```
 
+We plot each model obtained using best subset selection againts the test MSE to obtain the best model of all.
 
-We plot each model obtained using best subset selection againts the test MSE to obtain the best model of all
 ```{r}
 for(i in 1:(dim(train.set)[2] - 1)){
   coef.best = coef(best.subset, id = i)
@@ -227,14 +208,14 @@ for(i in 1:(dim(train.set)[2] - 1)){
   errors = mean((test.set[,"rating"] - predic)^2)
   mse.test.errors = cbind(mse.test.errors, errors)
 }
+
 qplot(x = c(1:(dim(train.set)[2] - 1)), y = as.numeric(mse.test.errors), main = 'Test MSE vs Number of Predictors', xlab = 'Nr. of Predictors',
      ylab = 'Test MSE', geom = c("point", "path"))
-
 ```
-
 
 This is the best model obtained. It includes variables year, length, votes, Action, Animation, Comedy,
 Dramam, Documentary and adjBudget. As we can observe, all predictors are related to the response and we are obtaining an adjusted R squared value of 0.402, meaning that our model is explaining 40% of the variance of the rating, and a Test MSE of 1.092. However, plotting the residuals we find evidence of a non linear relationship between the predictors and the response. 
+
 ```{r}
 lm.fit = lm(rating ~ year + length + votes + Action + Animation + Comedy
             + Drama + Documentary + adjBudget, data = train.set)
@@ -244,8 +225,8 @@ summary(lm.fit)
 plot(lm.fit)
 ```
 
-
 We try taking the logarithm of the variables votes. We observe that there is no discernable pattern in the distribution of the errors. 
+
 ```{r}
 lm.fit.log = lm(rating ~ year + length + I(log(votes)) + Action + Animation + Comedy
             + Drama + Documentary + adjBudget, data = train.set)
@@ -253,6 +234,7 @@ plot(lm.fit.log)
 ```
 
 Finally, we also observe an important improvements in terms of Adjusted R squared, since it increased aprox 8%, and the Test MSE error I now 0.98.
+
 ```{r}
 summary(lm.fit.log)
 MSE.test = mean((test.set$rating - fit.log.predic)^2)
@@ -260,7 +242,6 @@ MSE.test
 ```
 
 ## Correlation Matrix
-
 
 In our analysis, we explored four different methods for modeling the movie ratings: linear regression, polynomial regression, splines, and generalized additive models.
 
