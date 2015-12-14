@@ -1,5 +1,5 @@
 ---
-title: "Statistical Modeling: IMDB's User Movie Ratings Analysis"
+title: "IMDB's User Movie Ratings Analysis"
 author:
 - Juan Borgnino (jb3852)
 - Carolyn Morris (cm3491)
@@ -19,6 +19,7 @@ knitr::opts_chunk$set(fig.width=8, fig.height=4.5, echo=FALSE, warning=FALSE, me
 library("gettingtothebottom")
 library("corrplot")
 library("GGally")
+library("ggfortify")
 library("reshape2")
 library("plyr")
 library("leaps")
@@ -286,8 +287,12 @@ Given this, it is convenient to keep a distintion between movies of different ca
 
 We have decided to take the second approach, since this way we don't reduce the sample size of categories such as Documentaries, and we can also account for movies on which more than one genre is present (i.e. Action + Animation, Romance + Comedy, etc.).
 
-#Modeling
+# Statistical Modeling of Ratings
+
 ## Best Subset Selection
+
+Having completed the exploratory analysis of the data, we proceed to perform a number of statistical modeling techniques. It is natural to start with **Best Subset Selection**, method which will help us identify which combination of variables yields an optimal Test MSE for predicting the ratings.
+
 ```{r Best Subset Selection}
 #Create Training set
 movies = data.frame(movies, log.votes = log(movies$votes))
@@ -302,7 +307,6 @@ mse.test.errors = vector()
 inter.column=rep(1,dim(test.set)[1])
 
 best.subset = regsubsets(rating ~., train.set[, !names(train.set) %in% c('log.votes')], nvmax = 12)
-
 ```
 
 We plot each model obtained using best subset selection againts the test MSE to obtain the best model of all.
@@ -319,44 +323,48 @@ qplot(x = c(1:(dim(train.set)[2] - 2)), y = as.numeric(mse.test.errors), main = 
      ylab = 'Test MSE', geom = c("point", "path"))
 ```
 
-We find that the best model only includes 7 variables. Next, we present the coeficients of this model:
+We find that the best model only includes 7 variables, as including extra variables only increases the error. Next, we present the coeficients of this model:
 
 ```{r BSS Coeffs}
 nr.covariates = which.min(mse.test.errors)
 coef(best.subset, nr.covariates)
 ```
 
-This is the best model obtained. It includes variables year, length, votes, Animation, Comedy, Drama, and adjBudget. As we can observe, all predictors are related to the response and we are obtaining an adjusted R squared value of 0.394, meaning that our model is explaining aprox. 40% of the variance of the rating, and a Test MSE of 1.089. However, plotting the residuals we find evidence of a non linear relationship between the predictors and the response. 
+This is the best model obtained; it includes the variables $year$, $length$, $votes$, $Animation$, $Comedy$, $Drama$, and $adjBudget$. Somewhat surprisingly $nominated$ was not found to be relevant, which could be explained by the fact that only a small fraction of the movies (5.66%) actually received a nomination.
 
-```{r Linear Model}
+As we can observe, all selected predictors are related to the response, and we are obtaining an adjusted R squared value of 0.394, meaning that our model is explaining aprox. 40% of the variance of the rating, and a Test MSE of 1.089. However, plotting the residuals we find evidence of a non linear relationship between the predictors and the response. 
+
+```{r BSS Diagnostics}
 lm.fit = lm(rating ~ year + length + votes + Animation + Comedy
             + Drama + adjBudget, data = train.set)
 par(mfrow = c(2,2))
 summary(lm.fit)
 min(mse.test.errors)
-plot(lm.fit)
+autoplot(lm.fit, alpha = 1/3, smooth.colour = 'black', smooth.linetype = 'dashed', label.size = 2)
 ```
 
-We try taking the logarithm of the variables votes. We observe that there is no discernable pattern in the distribution of the errors. 
+We try taking the logarithm of the variables votes. Now observe that there is no discernable pattern in the distribution of the errors. 
 
-```{r Log Linear Model}
+```{r Log-Linear Model}
 lm.fit.log = lm(rating ~ year + length + I(log(votes)) + Animation + Comedy
             + Drama + adjBudget, data = train.set)
-plot(lm.fit.log)
+par(mfrow = c(2,2))
+autoplot(lm.fit.log, alpha = 1/3, smooth.colour = 'black', smooth.linetype = 'dashed', label.size = 2)
 ```
 
-Finally, we also observe an important improvements in terms of Adjusted R squared, since it increased aprox 8%, and the Test MSE error has decreased slightly to 1.037
+With this transformation we also observe an important improvements in terms of Adjusted R squared, since it increased aprox 8%, and the Test MSE error has decreased slightly to 1.037.
 
 ```{r Log Linear Model MSE}
 summary(lm.fit.log)
 fit.log.predict = predict(lm.fit.log, newdata = test.set[, !names(test.set) %in% ('rating')])
 MSE.test = mean((test.set$rating - fit.log.predict)^2)
+print("MSE Test Error:")
 MSE.test
 ```
 
 ## Polynomial Regression
 
-We extend the linear regression model by replacing it with a polynomial function. We determine which degree polynomial to use with the Analysis of Variance (ANOVA). ANOVA uses hypothesis tests to select the degree of polynomial. The null hypothesis is that model M1 is sufficient to explain the data; the alternative hypothesis is that the more complex model M2 is required. Note that M1 and M2 must be nested models, i.e. M1 is a subset of M2. If the p-value is greater than 0.05, then there is not enough evidence to reject the null, and we conclude that the simpler model, M1, is sufficient to explain the data.
+We extend the linear regression model by replacing it with a polynomial function. We determine which degree polynomial to use with the Analysis of Variance (ANOVA). ANOVA uses hypothesis tests to select it. The null hypothesis is that model M1 is sufficient to explain the data; the alternative hypothesis is that the more complex model M2 is required. Note that M1 and M2 must be nested models, i.e. M1 is a subset of M2. If the *p-value* is greater than 0.05, then there is not enough evidence to reject the null, and we conclude that the simpler model, M1, is sufficient to explain the data.
 
 ```{r Polynomial Regression}
 fit.1 = lm(rating ~ year + length + Animation + Comedy
@@ -372,8 +380,7 @@ fit.5 = lm(rating ~ year + length + Animation + Comedy
 anova(fit.1, fit.2, fit.3, fit.4, fit.5)
 ```
 
-
-We use the model obtained to predict on our test set. We obtain a Test MSE of 0.991, which is an improvement from the model without the polynomial of degree 3.
+Now we use this model obtained to predict on our test set. We obtain a Test MSE of 0.991, which is an improvement from the model without the polynomial of degree 3.
 
 ```{r Poly D3}
 train.fit.3 = lm(rating ~ year + length + Animation + Comedy
@@ -381,11 +388,12 @@ train.fit.3 = lm(rating ~ year + length + Animation + Comedy
 
 test.fit.3 = predict(train.fit.3, newdata = test.set[, !names(test.set) %in% c('rating')])
 MSE.test.fit.3 = mean((test.set$rating - test.fit.3)^2)
+print("MSE Test Error:")
 MSE.test.fit.3
 
 ```
 
-The variable votes seems to be a very important predictor for the response. We regress rating onto a polynomial of degree 3 of votes and observe that the adjusted R square is aprox 19%. Hence, we consider interesting to visualize how this curve fits the response on a graph.
+The variable *votes* seems to be a very important predictor for the response. We regress rating onto a polynomial of degree 3 and observe that the adjusted *R square* is aprox 19%. Hence, we consider interesting to visualize how this curve fits the response on a graph.
 
 ```{r Votes P3}
 lm.log.votes.3 = lm(rating ~ poly(log.votes,3), data = movies)
@@ -414,7 +422,6 @@ matlines(vote.grid, se.bands, lwd = 2, col = 'red')
 plot(movies$log.votes, movies$rating, col = 'darkgrey', xlab = 'Votes', ylab = 'Rating', main = 'Linear Regression')
 lines(vote.grid, predict.linear$fit, lwd = 2, col = 'darkblue')
 matlines(vote.grid, lin.bands, lwd = 2, col = 'red')
-
 ```
 
 We compute the test error using as predictor a polynomial of degree three of votes. We obtain a test error of 1.4607.
@@ -423,6 +430,7 @@ We compute the test error using as predictor a polynomial of degree three of vot
 poly.train = lm(rating ~ poly(log.votes, 3), data = train.set)
 poly.test = predict(poly.train, newdata = list(log.votes = test.set$log.votes))
 poly.error = mean((poly.test - test.set$rating)^2)
+print("MSE Test Error:")
 poly.error
 ```
 
@@ -465,6 +473,7 @@ We obtain a test error, 1464, that is slightly higher than the polynomial regres
 spline.train = lm(rating ~ bs(log.votes, df = spline.best.df), data = train.set)
 spline.test = predict(spline.train, newdata = list(log.votes = test.set$log.votes))
 spline.error = mean((spline.test - test.set$rating)^2)
+print("MSE Test Error:")
 spline.error
 ```
 
@@ -492,7 +501,6 @@ lines(vote.grid, ns.predict$fit, col = 'darkgreen', lwd = 2)
 abline(v = c(attr(ns(movies$log.votes ,df=7) ,"knots")) , col = 'darkorange', lty = 2, lwd = 2)
 lines(vote.grid, spline.predict, col = 'darkblue', lwd = 2)
 legend(9,4, c('Nat. Cubic Spline', 'Cubic Spline'), col = c('darkgreen', 'darkblue'), lty = c(1,1), lwd = c(2,2))
-
 ```
 
 We compute the test error and obtain 1.462. This is almost the same from what we obtained using the cubic spline. The conclusion is that the cubic spline is as stable as the natural cubic spline in the boundaries. In addition, the larger number of knots being used by the natural cubic spline is not providing any additional improvement.
