@@ -350,7 +350,10 @@ summary(lm.log.votes.3)
 
 The first graph is produced by fitting a polynomial of degree 3, while the graph on the rigth is produced fitting a regular line. It is very clear, how the polynomial of degree 3 allows us to fit a more flexible curve that fits the data better.
 <<<<<<< HEAD
+<<<<<<< HEAD
 
+=======
+>>>>>>> master
 =======
 >>>>>>> master
 ```{r}
@@ -376,7 +379,10 @@ matlines(vote.grid, lin.bands, lwd = 2, col = 'red')
 
 We compute the test error using the polynomial of degree three only using votes as predictor.
 <<<<<<< HEAD
+<<<<<<< HEAD
 
+=======
+>>>>>>> master
 =======
 >>>>>>> master
 ```{r}
@@ -387,7 +393,10 @@ test.error
 ```
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 Next we fit a cubic spline to the data. We start by using cross-validation to obtain the degrees of freedom which minimize the test error. We find that 7 degrees of freedom provide us the lowest estimated test error.
+=======
+>>>>>>> master
 =======
 >>>>>>> master
 
@@ -404,7 +413,10 @@ spline.best.df = which.min(cross.spline)
 
 Points were we will fit the 4 knots.
 <<<<<<< HEAD
+<<<<<<< HEAD
 
+=======
+>>>>>>> master
 =======
 >>>>>>> master
 ```{r}
@@ -457,6 +469,7 @@ abline(v = c(attr(ns(log(movies$votes) ,df=7) ,"knots")) , col = 'darkorange', l
 
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 Next we fit a spline to the data
 =======
 
@@ -468,6 +481,16 @@ Next we fit a spline to the data
 
 
 
+=======
+
+
+
+
+
+
+
+
+>>>>>>> master
 The best model using log(votes) is cubic.
 
 ```{r}
@@ -492,6 +515,7 @@ summary(fit.3)
 ```
 R-squared: 0.02 --> explains 2% of the data
 
+<<<<<<< HEAD
 <<<<<<< HEAD
 ### GAMs
 We will now explore General Additive Models (GAMs). These extend the multiple linear regression model by allowing non-linear functions of each variable. We calculate a different function for each variable, and add together all of their contributions. This results in potentially more accurate predictions for our response variable, the movie rating. Furthermore, since the model is additive, we can interpret the effects of each variable on the movie rating.    
@@ -588,6 +612,16 @@ GAM                         0.944
 GAM                         0.974
 - natural splines
 ------------------------------------------------------------
+=======
+## Step Functions
+
+## Splines
+
+## GAMs
+
+
+# Which model was the best?
+>>>>>>> master
 =======
 ## Step Functions
 
