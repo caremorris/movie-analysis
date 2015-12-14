@@ -275,7 +275,6 @@ abline(lm.fit, lwd = 3, col = 'red')
 
 We extend the linear regression model by replacing it with a polynomial function. We determine which degree polynomial to use with the Analysis of Variance (ANOVA). ANOVA uses hypothesis tests to select the degree of polynomial. The null hypothesis is that model M1 is sufficient to explain the data; the alternative hypothesis is that the more complex model M2 is required. Note that M1 and M2 must be nested models, i.e. M1 is a subset of M2. If the p-value is greater than 0.05, then there is not enough evidence to reject the null, and we conclude that the simpler model, M1, is sufficient to explain the data.
 
-Log Votes
 ```{r}
 fit.1 = lm(rating ~ year + length + Action + Animation + Comedy
            + Drama + Documentary + adjBudget + log.votes, data = movies)
@@ -289,7 +288,6 @@ fit.5 = lm(rating ~ year + length + Action + Animation + Comedy
            + Drama + Documentary + adjBudget + poly(log.votes, 5), data = movies)
 anova(fit.1, fit.2, fit.3, fit.4, fit.5)
 ```
-
 
 
 We use the model obtained to predict on our test set. We obtain a Test MSE of 0.936, which is an improvement from the model without the polynomial of degree 3.
@@ -320,17 +318,94 @@ vote.grid = seq(from=vote.lims [1], to=vote.lims[2])
 
 predict.linear = predict(lm.votes.fit, newdata = list(log.votes = vote.grid), se = T)
 lin.bands = cbind(predict.linear$fit + 2*predict.linear$se,  predict.linear$fit - 2*predict.linear$se)
-predict = predict(poly.fit, newdata = list(log.votes = vote.grid), se = T)
-se.bands = cbind(predict$fit + 2*predict$se,  predict$fit - 2*predict$se)
+predict.poly = predict(poly.fit, newdata = list(log.votes = vote.grid), se = T)
+se.bands = cbind(predict.poly$fit + 2*predict.poly$se,  predict.poly$fit - 2*predict.poly$se)
 
 plot(movies$log.votes, movies$rating, col = 'darkgrey', xlab = 'Votes', ylab = 'Rating', main = 'Polynomial of d = 3')
-lines(vote.grid, predict$fit, lwd = 2, col = 'darkblue')
+lines(vote.grid, predict.poly$fit, lwd = 2, col = 'darkblue')
 matlines(vote.grid, se.bands, lwd = 2, col = 'red')
 plot(movies$log.votes, movies$rating, col = 'darkgrey', xlab = 'Votes', ylab = 'Rating', main = 'Linear Regression')
 lines(vote.grid, predict.linear$fit, lwd = 2, col = 'darkblue')
 matlines(vote.grid, lin.bands, lwd = 2, col = 'red')
 
 ```
+
+We compute the test error using the polynomial of degree three only using votes as predictor.
+```{r}
+poly.train = lm(rating ~ poly(log(votes),3), data = train.set)
+poly.test = predict(poly.train, newdata = list(votes = log(test.set$votes)))
+test.error = mean((poly.test - test.set$rating)^2)
+test.error
+```
+
+
+Next we fit a cubic spline to the data. We start by using cross-validation to obtain the degrees of freedom which minimize the test error. We find that 7 degrees of freedom provide us the lowest estimated test error.
+```{r}
+library(boot)
+cross.spline = rep(NA, 12)
+for (i in 5:16) {
+  fiting = glm(rating ~ bs(log.votes, df = i), data = movies)
+  cross.spline[i] = cv.glm(movies, fiting, K = 10)$delta[2]
+}
+spline.best.df = which.min(cross.spline)
+```
+
+Points were we will fit the 4 knots.
+```{r}
+attr(bs(log(movies$votes) ,df = spline.best.df) ,"knots") 
+```
+
+Next we fit a spline to the data
+```{r}
+library(splines)
+spline.fit = lm(rating ~ bs(log.votes, df = spline.best.df), data = movies)
+spline.predict = predict(spline.fit, newdata = list(log.votes = vote.grid))
+summary(spline.fit)
+
+plot(movies$log.votes, movies$rating, col = 'darkgrey', xlab = 'Votes', ylab = 'Rating', main = 'Cubic Sline with 4 Knots')
+lines(vote.grid, spline.predict, col = 'darkgreen', lwd = 2)
+abline(v = c(attr(bs(log(movies$votes) ,df=7) ,"knots") ), col = 'darkorange', lty = 2, lwd = 2)
+plot(movies$log.votes, movies$rating, col = 'darkgrey', xlab = 'Votes', ylab = 'Rating', main = 'Polynomial of d = 3')
+lines(vote.grid, predict.poly$fit, lwd = 2, col = 'darkblue')
+
+```
+
+We obtain a very high test error using cubic splines.
+```{r}
+spline.train = lm(rating ~ bs(log(votes), df = 6), data = train.set)
+spline.test = predict(spline.train, newdata = list(votes = log(test.set$votes)))
+spline.error = mean((spline.test - test.set$rating)^2)
+spline.error
+```
+
+
+```{r}
+cross.spline = rep(NA, 12)
+for (i in 5:16) {
+  fiting = glm(rating ~ ns(log(votes), df = i), data = movies)
+  cross.spline[i] = cv.glm(movies, fiting, K = 10)$delta[2]
+}
+ns.best.df = which.min(cross.spline)
+```
+
+
+```{r}
+ns.fit = lm(rating ~ ns(log(votes), df = ns.best.df), data = movies)
+ns.predict = predict(ns.fit, newdata = list(votes = list(log.votes = vote.grid)))
+summary(ns.fit)
+
+plot(log(movies$votes), movies$rating, col = 'darkgrey', xlab = 'Votes', ylab = 'Rating', main = 'Votes vs Rating')
+lines(seq(min(movies$votes), max(movies$votes)), ns.predict, col = 'darkgreen', lwd = 2)
+abline(v = c(attr(ns(log(movies$votes) ,df=7) ,"knots")) , col = 'darkorange', lty = 2, lwd = 2)
+```
+
+
+
+
+
+
+
+
 
 
 The best model using log(votes) is cubic.
