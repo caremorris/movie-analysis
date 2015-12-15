@@ -323,7 +323,7 @@ qplot(x = c(1:(dim(train.set)[2] - 2)), y = as.numeric(mse.test.errors), main = 
      ylab = 'Test MSE', geom = c("point", "path"))
 ```
 
-We find that the best model only includes 7 variables, as including extra variables only increases the error. Next, we present the coeficients of this model:
+We find that the best model only includes 7 variables, as including extra variables only increases the error. Next, we present the coefficients of this model:
 
 ```{r BSS Coeffs}
 nr.covariates = which.min(mse.test.errors)
@@ -332,18 +332,19 @@ coef(best.subset, nr.covariates)
 
 This is the best model obtained; it includes the variables $year$, $length$, $votes$, $Animation$, $Comedy$, $Drama$, and $adjBudget$. Somewhat surprisingly $nominated$ was not found to be relevant, which could be explained by the fact that only a small fraction of the movies (5.66%) actually received a nomination.
 
-As we can observe, all selected predictors are related to the response, and we are obtaining an adjusted R squared value of 0.394, meaning that our model is explaining aprox. 40% of the variance of the rating, and a Test MSE of 1.089. However, plotting the residuals we find evidence of a non linear relationship between the predictors and the response. 
+As we observe below, all of the selected predictors are related to the response, and we are obtaining an adjusted R squared value of 0.394, meaning that our model is explaining aprox. 40% of the variance of the rating, and a Test MSE of 1.089. However, plotting the residuals we find evidence of a non-linear relationship between the predictors and the response. 
 
 ```{r BSS Diagnostics}
 lm.fit = lm(rating ~ year + length + votes + Animation + Comedy
             + Drama + adjBudget, data = train.set)
 par(mfrow = c(2,2))
 summary(lm.fit)
+print("MSE Test Error:")
 min(mse.test.errors)
 autoplot(lm.fit, alpha = 1/3, smooth.colour = 'black', smooth.linetype = 'dashed', label.size = 2)
 ```
 
-We try taking the logarithm of the variables votes. Now observe that there is no discernable pattern in the distribution of the errors. 
+We take the logarithm of the variables *votes*. Now observe that there is no discernable pattern in the distribution of the errors. 
 
 ```{r Log-Linear Model}
 lm.fit.log = lm(rating ~ year + length + I(log(votes)) + Animation + Comedy
@@ -352,7 +353,7 @@ par(mfrow = c(2,2))
 autoplot(lm.fit.log, alpha = 1/3, smooth.colour = 'black', smooth.linetype = 'dashed', label.size = 2)
 ```
 
-With this transformation we also observe an important improvements in terms of Adjusted R squared, since it increased aprox 8%, and the Test MSE error has decreased slightly to 1.037.
+With the logarithmic transformation of *votes*, we also observe an important improvements in terms of Adjusted R squared, since it increased approximately 8%, and the Test MSE error has decreased slightly to 1.037.
 
 ```{r Log Linear Model MSE}
 summary(lm.fit.log)
@@ -364,7 +365,7 @@ MSE.test
 
 ## Polynomial Regression
 
-We extend the linear regression model by replacing it with a polynomial function. We determine which degree polynomial to use with the Analysis of Variance (ANOVA). ANOVA uses hypothesis tests to select it. The null hypothesis is that model M1 is sufficient to explain the data; the alternative hypothesis is that the more complex model M2 is required. Note that M1 and M2 must be nested models, i.e. M1 is a subset of M2. If the *p-value* is greater than 0.05, then there is not enough evidence to reject the null, and we conclude that the simpler model, M1, is sufficient to explain the data.
+We extend the linear regression model by replacing it with a polynomial function. We determine which degree polynomial to use with the Analysis of Variance (ANOVA). ANOVA uses hypothesis tests to select it. The null hypothesis is that model M1 is sufficient to explain the data; the alternative hypothesis is that the more complex model M2 is required. Note that M1 and M2 must be nested models, i.e. M1 is a subset of M2. If the *p-value* is greater than 0.05, then there is not enough evidence to reject the null, and we conclude that the simpler model (lower-degree polynomial), M1, is sufficient to explain the data.
 
 ```{r Polynomial Regression}
 fit.1 = lm(rating ~ year + length + Animation + Comedy
@@ -400,7 +401,9 @@ lm.log.votes.3 = lm(rating ~ poly(log.votes,3), data = movies)
 summary(lm.log.votes.3)
 ```
 
-The first graph is produced by fitting a polynomial of degree 3, while the graph on the rigth is produced fitting a regular line. It is very clear how the polynomial of degree 3 allows us to fit a more flexible curve that fits the data better.
+The first graph is produced by fitting a polynomial of degree 3, while the graph on the right is produced by fitting a regular line. It is very clear how the polynomial of degree 3 allows us to fit a more flexible curve that fits the data better. The red lines represent the confidence intervals.
+
+<!-- show the p-values and adjusted r-squared --> 
 
 ```{r Votes P3 Details}
 par(mfrow = c(1,2))
@@ -409,7 +412,6 @@ poly.fit = lm(rating ~ poly(log.votes, 3), data = movies)
 lm.votes.fit = lm(rating ~ log.votes, data = movies)
 vote.lims = range(movies$log.votes)
 vote.grid = seq(from=vote.lims[1], to=vote.lims[2])
-summary(poly.fit)
 
 predict.linear = predict(lm.votes.fit, newdata = list(log.votes = vote.grid), se = T)
 lin.bands = cbind(predict.linear$fit + 2*predict.linear$se,  predict.linear$fit - 2*predict.linear$se)
@@ -424,7 +426,7 @@ lines(vote.grid, predict.linear$fit, lwd = 2, col = 'darkblue')
 matlines(vote.grid, lin.bands, lwd = 2, col = 'red')
 ```
 
-We compute the test error using as predictor a polynomial of degree three of votes. We obtain a test error of 1.4607.
+We compute the test error using as predictor a polynomial of degree three of votes. We obtain a test error of 1.4607, which is good result considering we are only using one predictor.
 
 ```{r Votes P3 Error}
 poly.train = lm(rating ~ poly(log.votes, 3), data = train.set)
@@ -446,12 +448,15 @@ for (i in 5:16) {
 spline.best.df = which.min(cross.spline)
 ```
 
-Points were we will fit the 4 knots.
+<!-- needs proper phrasing -->
+Fitting a 7-degree polynomial is equivalent to adding 4 knots to the model. We determine the points where we will fit the 4 knots.
 ```{r Knots}
 attr(bs(log(movies$votes) ,df = spline.best.df) ,"knots") 
 ```
 
 Next we fit a spline to the data. We can observe that the cubic spline with 4 knots has additional flexibility compared to the polynomial regression because we are fitting four different polynomial regression.
+
+<!--side by side plots (or maybe overlap on same plots) -->
 
 ```{r Splines}
 library(splines)
@@ -467,7 +472,7 @@ lines(vote.grid, predict.poly$fit, lwd = 2, col = 'darkblue')
 
 ```
 
-We obtain a test error, 1464, that is slightly higher than the polynomial regression. It looks likes the additional flexibility could be increasing the error due to higher variance.
+We obtain a test error, 1.464, that is slightly higher than the polynomial regression. It looks likes the additional flexibility could be increasing the error due to higher variance.
 
 ```{r Splines Error}
 spline.train = lm(rating ~ bs(log.votes, df = spline.best.df), data = train.set)
@@ -477,7 +482,9 @@ print("MSE Test Error:")
 spline.error
 ```
 
-Next we try fitting a natural spline. We start by using cross validation to obtain the degrees of freedom which minimize the test error estimate.
+Next we try fitting a natural spline. We start by using cross-validation to obtain the degrees of freedom which minimize the test error estimate.
+
+<!-- add a graph with cross-validation -->
 
 ```{r Splines Validation}
 cross.spline = rep(NA, 12)
@@ -505,6 +512,8 @@ legend(9,4, c('Nat. Cubic Spline', 'Cubic Spline'), col = c('darkgreen', 'darkbl
 
 We compute the test error and obtain 1.462. This is almost the same from what we obtained using the cubic spline. The conclusion is that the cubic spline is as stable as the natural cubic spline in the boundaries. In addition, the larger number of knots being used by the natural cubic spline is not providing any additional improvement.
 
+<!-- less output here -->
+
 ```{r Cubic Splines Details}
 ns.train = lm(rating ~ ns(log.votes, df = ns.best.df), data = train.set)
 ns.test = predict(ns.train, newdata = list(log.votes = test.set$log.votes))
@@ -514,11 +523,12 @@ ns.error
 
 We now fit a smoothing spline.
 
+<!-- add confidence interval -->
 ```{r Smoothing Spline}
 smoothing.fit = smooth.spline(movies$log.votes, movies$rating, df = 9)
-plot(movies$log.votes, movies$rating, col = 'darkgrey', xlab = 'Votes', ylab = 'Rating', main = 'Votes vs Rating')
+plot(movies$log.votes, movies$rating, col = 'darkgrey', xlab = 'Votes', ylab = 'Rating', main = 'Smoothing Spline')
 lines(smoothing.fit, col = 'red', lwd = 2)
-summary(smoothing.fit)
+#summary(smoothing.fit)
 ```
 
 We compute the test error and obtain 1.457. This model is obtaining a slightly better performance compared to the cubic and natural spline, but not compared to the polynomial regression with the best subset predictors.
@@ -555,30 +565,6 @@ smoothing.error
 ### GAMs
 We will now explore General Additive Models (GAMs). These extend the multiple linear regression model by allowing non-linear functions of each variable. We calculate a different function for each variable, and add together all of their contributions. This results in potentially more accurate predictions for our response variable, the movie rating. Furthermore, since the model is additive, we can interpret the effects of each variable on the movie rating.    
 
-We now fit a GAM to predict wage using different combinations of smoothing spline functions of votes, length, and budget.
-```{r}
-library(gam)
-fit.1 = gam(rating ~ votes + length + adjBudget, data = movies)
-fit.2 = gam(rating ~ s(votes, df = 4) + length + adjBudget, data = movies)
-fit.3 = gam(rating ~ s(votes, df = 4) + s(length, df = 4) + adjBudget, data = movies)
-fit.4 = gam(rating ~ s(votes, df = 4) + s(length, df = 4) + s(adjBudget, df = 4), data = movies)
-
-anova(fit.1, fit.2, fit.3, fit.4)
-```
-Based on the restuls of this ANOVA, there is evidence that the GAM with a smoothing spline of each variable (votes, length, adjBudget), is the best model.
-
-```{r}
-par(mfrow = c(1,3))
-plot(fit.4, se = T, col = 'red')
-summary(fit.4)
-```
-
-We will now use the GAM to make predictions, and determine the test MSE.
-
-```{r}
-gam.train <- gam(rating ~ s(votes, df = 4) + s(length, df = 4) + s(adjBudget, df = 4), data = train.set)
-preds <- predict(gam.train, data = test.set)
-```
 
 ```{r}
 fit.1 = gam(rating ~ year + length + votes + Animation + Comedy + Drama + adjBudget, data = movies)
@@ -588,7 +574,7 @@ fit.4 = gam(rating ~ s(year, df = 4) + s(length, df = 4) + s(votes, df = 4) + An
 fit.5 = gam(rating ~ s(year, df = 4) + s(length, df = 4) + s(votes, df = 4) + Animation + Comedy + Drama + s(adjBudget, df = 4), data = movies)
 anova(fit.1, fit.2, fit.3, fit.4, fit.5)
 ```
-Based on the ANOVA results, there is evidence that the GAM with a spline for each of year, length, and budget, along with linear variables animation, comedy, and drama, is the best model.
+Based on the ANOVA results, there is evidence to reject the null hypothesis that the simplest model is sufficient. Thus, the GAM with a spline for each of year, length, and budget, along with linear variables animation, comedy, and drama, is the best model.
 
 ```{r}
 summary(fit.5)
@@ -660,8 +646,15 @@ gam.error = mean((gam.test - test.set$rating)^2)
 gam.error
 ```
 
+We conclude that taking the log of the votes does improve the GAM; however, it provided more of benefit in our linear models.
 
+<!-- only print test MSE, not summary of all the models -->
 
+<!-- plot of best model -->
+
+# Conclusion
+
+<!-- sort this, add correct values -->
 ------------------------------------------------------------
 Model                     Test MSE
 ------------------------- ----------------------------------
