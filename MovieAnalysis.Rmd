@@ -384,11 +384,11 @@ Finally, we substitute from our model the variable votes for the logarithm of vo
 To conclude, using the logarithm of votes seems to be improving the fit of our model. Hence, for the rest of the statistical learning methods we will apply, we will use this variable.
 
 ```{r Log Linear Model MSE}
-print('Adj. R Squared')
+print("Adj. R Squared:")
 summary(lm.fit.log)$adj.r.squared
 fit.log.predict = predict(lm.fit.log, newdata = test.set[, !names(test.set) %in% ('rating')])
 MSE.test = mean((test.set$rating - fit.log.predict)^2)
-print("MSE Test Error:")
+print("MSE Test:")
 MSE.test
 ```
 
@@ -425,7 +425,7 @@ train.fit.3 = lm(rating ~ year + length + Animation + Comedy
 
 test.fit.3 = predict(train.fit.3, newdata = test.set[, !names(test.set) %in% c('rating')])
 MSE.test.fit.3 = mean((test.set$rating - test.fit.3)^2)
-print("MSE Test Error:")
+print("MSE Test::")
 MSE.test.fit.3
 
 ```
@@ -438,12 +438,12 @@ Before moving on to apply other methods, we take a closer look at the variable *
 
 ```{r Votes P3}
 lm.log.votes.3 = lm(rating ~ poly(log.votes,3), data = movies)
-print('Adj. R Squared')
+print("Adj. R Squared:")
 summary(lm.log.votes.3)$adj.r.squared
 poly.train = lm(rating ~ poly(log.votes, 3), data = train.set)
 poly.test = predict(poly.train, newdata = list(log.votes = test.set$log.votes))
 poly.error = mean((poly.test - test.set$rating)^2)
-print("MSE Test Error:")
+print("MSE Test:")
 poly.error
 ```
 
@@ -511,7 +511,7 @@ Next we fit a spline to the data. From the summary of the model we find the foll
 library(splines)
 spline.fit = lm(rating ~ bs(log.votes, df = spline.best.df), data = movies)
 spline.predict = predict(spline.fit, newdata = list(log.votes = vote.grid))
-print("Adj. R squared")
+print("Adj. R Squared:")
 summary(spline.fit)$adj.r.squared
 ```
 
@@ -539,7 +539,7 @@ In last place, we obtain a test MSE of 1.464 from the cubic spline model, that i
 spline.train = lm(rating ~ bs(log.votes, df = spline.best.df), data = train.set)
 spline.test = predict(spline.train, newdata = list(log.votes = test.set$log.votes))
 spline.error = mean((spline.test - test.set$rating)^2)
-print("MSE Test Error:")
+print("MSE Test:")
 spline.error
 ```
 
@@ -639,11 +639,37 @@ print('Test MSE')
 smoothing.error
 ```
 
+<<<<<<< HEAD
 ### General Additive Models (GAMs)
 We will now explore General Additive Models (GAMs). These extend the multiple linear regression model by allowing non-linear functions of each variable. We calculate a different function for each variable, and add together all of their contributions. This results in potentially more accurate predictions for our response variable, the movie rating. Furthermore, since the model is additive, we can interpret the effects of each variable on the movie rating.    
 
 #### GAM with Smoothing Splines  
 
+=======
+
+```{r XXX}
+# local.errors = rep(NA, 101)
+# seq = seq(0.01, 1, by = 0.01)
+# j = 1
+# for(i in seq){
+#   local.train = loess(rating ~ log.votes, span = i , data = train.set)
+#   local.test = predict(local.fit, newdata = data.frame(log.votes = test.set$log.votes))$fit
+#   errors = mean((local.test - test.set$log.votes)^2)
+#   local.errors[j] = errors
+#   j = j + 1
+# }
+# 
+# local.fit = loess(rating ~ log.votes, span = 0.05, data = movies)
+# local.predict = predict(local.fit, newdata = data.frame(log.votes = vote.grid))
+# 
+# plot(movies$log.votes, movies$rating, col = 'darkgrey', xlab = 'Votes', ylab = 'Rating', main = 'Votes vs Rating')
+# lines(vote.grid, local.predict, col = 'red', lwd = 2)
+```
+
+### General Additive Models (GAMs)
+We will now explore General Additive Models (GAMs). These extend the multiple linear regression model by allowing non-linear functions of each variable. We calculate a different function for each variable, and add together all of their contributions. This results in potentially more accurate predictions for our response variable, the movie rating. Furthermore, since the model is additive, we can interpret the effects of each variable on the movie rating.    
+
+#### GAM with Smoothing Splines
 We use the predictors that were chosen in the best subset selection: year, length, votes, Animation, Comedy, Drama, and adjBudget. We use the 'gam' package in R to fit the models. This software relies on the backfitting method to fit the model.
 ```{r}
 fit.1 = gam(rating ~ year + length + votes + Animation + Comedy + Drama + adjBudget, data = movies)
@@ -664,8 +690,12 @@ gam.error
 ```
 The test MSE is 0.944.
 
+<<<<<<< HEAD
 #### GAM with Natural Splines  
 
+=======
+#### GAM with Natural Splines
+>>>>>>> 1344078db46337e82ebf0f8c5d3fc7833fc46921
 We repeat the process of selecting the best GAM, this time using natural splines instead of smoothing splines. Again, we use the same variables from the best subset selection.
 ```{r}
 fit.1 = gam(rating ~ year + length + votes + Animation + Comedy + Drama + adjBudget, data = movies)
@@ -691,6 +721,13 @@ However, we found in our modeling with polynomial regression and splines that ta
 
 #### GAM with Smoothing Splines and Logarithm of Votes  
 
+The natural splines GAM yields a Test MSE of 0.974.
+
+Thus, the best GAM consists of smoothing splines instead of natural splines. With a test MSE of 0.944, this is the most accurate model at this point in our analysis. 
+
+However, we found in our modeling with polynomial regression and splines that taking the logarithm of the votes improves the accuracy of the model. Is this true for the GAM as well? We repeat the analysis above, substituting the logarithm of the votes for the untransformed votes.
+
+#### GAM with Smoothing Splines and Logarithm of Votes
 ```{r}
 fit.1 = gam(rating ~ year + length + log.votes + Animation + Comedy + Drama + adjBudget, data = movies)
 fit.2 = gam(rating ~ s(year, df = 4) + length + log.votes + Animation + Comedy + Drama + adjBudget, data = movies)
@@ -708,6 +745,7 @@ gam.error
 ```
 
 Based on the results from ANOVA, the best GAM that uses smoothing splines and the logarithmic votes is the most complex, with a spline for year, length, log(votes), and adjBudget. It has a test MSE of 0.937. This is slightly better than the test MSE for the identical model with normal votes instead of log(votes), which had a test MSE of 0.944.
+<<<<<<< HEAD
 
 ```{r fig.height = 5}
 par(mfrow = c(2,4))
@@ -725,6 +763,23 @@ If we hold all variables constant except for the year, the leftmost plot tells u
 
 #### GAM with Natural Splines and Logarithm of Votes
 
+=======
+
+```{r}
+par(mfrow = c(1,7))
+plot(fit.5, se=TRUE, col="red")
+```
+
+We display a plot for each variable in our GAM, showing its individual contribution to the additive model. The standard errors are repressented by the dotted lines.
+
+Plots of the relationship between each feature and the response, movie ratings, in the fitted GAM. Each plot displays the fitted function and pointwise standard errors. The first three functions are smoothing splines in year, length, and logarithm votes, with four degrees of freedom. The fourth, fifth, and sixth plots display the qualitative variables Animation, Comedy, and Drama, respectively. The rightmost function is the smoothing spline in budget. 
+
+If we hold all variables constant except for the year, the leftmost plot tells us that the rating decreases with the year. The second plot tells us that holding all variables fixed except for length, the movie rating increases until approximately 250 minutes, and then begins to decrease. Other interpretations:
+* Holding all of our predictors fixed except for votes, the movie rating increases with the number of votes.
+* Holding all factors fixed except for budget, as the budget increases, the movie rating decreases. However, note the larger standard errors here.
+* Animation, Comedy, and Drama each contributes to an increase in movie rating, which supports our correlation analysis
+
+#### GAM with Natural Splines and Logarithm of Votes
 ```{r}
 fit.1 = gam(rating ~ year + length + log.votes + Animation + Comedy + Drama + adjBudget, data = movies)
 fit.2 = gam(rating ~ ns(year, df = 4) + length + log.votes + Animation + Comedy + Drama + adjBudget, data = movies)
@@ -780,5 +835,6 @@ In terms of interpretability, some of these signs makes sense and are consistent
 If we are to favor the *prediction* capabilities of our models, one would think of using the GAM (Smoothed Splines), which combines the power of non-parametric and linear models to provide greater flexibility. However, one should also note that the polynomial model is almost as good, and its *intepretation* is easier, so we would recommend sticking to the multivariate polynomial regression in this case.
 
 For future studies we would recommend incorporating classification techniques into the analysis, as this distinct approach might yield interesting results (while treating rating as a categorical variable, rather than a continuous one).
+
 
 [^1]: Check code appendix for details.
