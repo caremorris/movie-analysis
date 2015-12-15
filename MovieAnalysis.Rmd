@@ -682,4 +682,12 @@ GAM                         0.944
 
 GAM                         0.974
 - natural splines
+
+GAM
+- smoothing splines         0.937
+- log(votes)
+
+GAM
+- natural splines           0.980
+- log(votes)
 ------------------------------------------------------------
