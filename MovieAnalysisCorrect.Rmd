@@ -9,7 +9,6 @@ date: "December 15, 2015"
 abstract: |
   In this analysis, we take IMDB's movie rating and descriptive data, combine it with the Academy Awards Best Picture nominations, and derive a model to predict highly rated movies. For this we test linear, polynomial, splines and General Additive Models. We identify our dataset as a complex one to model, so more flexible models performed better. In terms of inference, we found the number of votes was the best predictor, implying that more popular movies tend to be rated higher (or the other way around). Other variables such as the year of release, its length, budget and genre are also significantly related. Contrary to our expectations, 'Best Picture' nominations were not.
 output: pdf_document
-fontsize: 9pt
 geometry: margin=0.8in
 ---
   
@@ -48,7 +47,7 @@ movies[!is.na(match(gsub(", The", "", gsub('"', '', movies$title)), gsub("The ",
 
 #Data Sources
 
-Our dataset consists of movie rating and budget data for 5,183 films, scraped from the [Internet Movie Database](http://www.imdb.com/interfaces/) FTP site, paired with a historical list of Academy Awards Best Picture Nominations, retrieved from [Agg Data](https://www.aggdata.com/awards/oscar). Both data sources are legally made available to the general public. For our analysis, we are interested in analyzing the interactions between IMDB ratings assigned by the general public and a list of other possible explanatory variables, which are listed on the following table.
+Our dataset consists of movie rating and budget data for 5,183 films from the [Internet Movie Database](http://www.imdb.com/interfaces/), paired with a historical list of Academy Awards Best Picture Nominations, retrieved from [Agg Data](https://www.aggdata.com/awards/oscar). Both data sources are legally made available to the general public. For our analysis, we are interested in analyzing the interactions between IMDB ratings assigned by the general public and a list of other possible explanatory variables, which are listed on the following table.
 
 -------------------------------------------------------------
 Variable  Description
@@ -57,7 +56,7 @@ title     Title of the movie.
 
 year      Year the movie was released.
 
-budget    Total budget (if known) in US dollars.
+budget    Total budget if in US dollars.
 
 length    Length of movie (in minutes).
 
@@ -80,7 +79,7 @@ genre     Binary variables indicating whether movie belongs
 # Exploratory Data Analysis & Tests
 
 ### Summary of Data
-Before beginning with the formal statistical analysis, it is necessary to perform exploratory analysis on the data to identify possible patterns. We begin by looking at the summary information for each of the variables.
+Before beginning with the formal statistical analysis, it is convenient to perform exploratory analysis on the data to identify possible patterns. We begin by looking at the summary information for each of the variables.
 
 ```{r Summary1 Statistics}
 summary(movies)
@@ -152,7 +151,7 @@ Here we can see a positive correlation between rating and *votes*, as well as ra
   
 ```{r top RatingPerYear, fig.height=3}
 topRPY <- ddply(movies, "year", function(x) {max(x[3])})
-ggplot(topRPY, aes(x=year, y=V1)) + geom_line() + labs(x="Year", y="Top Rating")
+ggplot(topRPY, aes(x=year, y=V1)) + geom_line() + labs(x="Year", y="Top Rating") + geom_smooth()
 ```
 
 Finally we see *length* positively correlated with *rating*, so we can expect longer movies to receive more love from the audience.
@@ -218,6 +217,8 @@ print("rating vs. oscar")
 cOscar
 ```
 
+\pagebreak
+
 The main observations from this analysis:
   
 * The number of votes are highly correlated with the movie rating in all cases, except documentaries, where we have few observations.
@@ -257,6 +258,8 @@ trueMed
 # If p-value is less than 0.05 then H0 is rejected. The median is greater than 5.
 # SIGN.test(y, md = 5, alternative = "greater", conf.level = 0.95)
 ```
+
+\pagebreak
 
 With this small *p-value*, we reject the null hypothesis of the median being less than 5 stars. Combining this information with a box plot:
 
