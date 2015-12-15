@@ -621,6 +621,47 @@ gam.error
 ```
 The natural splines GAM yields a Test MSE of 0.974.
 
+
+We will repeat this process taking the logarithm of the votes.
+
+
+Smoothing Splines
+```{r}
+fit.1 = gam(rating ~ year + length + log.votes + Animation + Comedy + Drama + adjBudget, data = movies)
+fit.2 = gam(rating ~ s(year, df = 4) + length + log.votes + Animation + Comedy + Drama + adjBudget, data = movies)
+fit.3 = gam(rating ~ s(year, df = 4) + s(length, df = 4) + log.votes + Animation + Comedy + Drama + adjBudget, data = movies)
+fit.4 = gam(rating ~ s(year, df = 4) + s(length, df = 4) + s(log.votes, df = 4) + Animation + Comedy + Drama + adjBudget, data = movies)
+fit.5 = gam(rating ~ s(year, df = 4) + s(length, df = 4) + s(log.votes, df = 4) + Animation + Comedy + Drama + s(adjBudget, df = 4), data = movies)
+anova(fit.1, fit.2, fit.3, fit.4, fit.5)
+```
+
+```{r}
+gam.train = gam(rating ~ s(year, df = 4) + s(length, df = 4) + s(log.votes, df = 4) + Animation + Comedy + Drama + s(adjBudget, df = 4), data = train.set)
+gam.test = predict(gam.train, newdata = test.set)
+gam.error = mean((gam.test - test.set$rating)^2)
+gam.error
+```
+
+
+Natural Splines
+```{r}
+fit.1 = gam(rating ~ year + length + log.votes + Animation + Comedy + Drama + adjBudget, data = movies)
+fit.2 = gam(rating ~ ns(year, df = 4) + length + log.votes + Animation + Comedy + Drama + adjBudget, data = movies)
+fit.3 = gam(rating ~ ns(year, df = 4) + ns(length, df = 4) + log.votes + Animation + Comedy + Drama + adjBudget, data = movies)
+fit.4 = gam(rating ~ ns(year, df = 4) + ns(length, df = 4) + ns(log.votes, df = 4) + Animation + Comedy + Drama + adjBudget, data = movies)
+fit.5 = gam(rating ~ ns(year, df = 4) + ns(length, df = 4) + ns(log.votes, df = 4) + Animation + Comedy + Drama + ns(adjBudget, df = 4), data = movies)
+anova(fit.1, fit.2, fit.3, fit.4, fit.5)
+```
+
+```{r}
+gam.train = gam(rating ~ ns(year, df = 4) + ns(length, df = 4) + ns(log.votes, df = 4) + Animation + Comedy + Drama + ns(adjBudget, df = 4), data = train.set)
+gam.test = predict(gam.train, newdata = test.set)
+gam.error = mean((gam.test - test.set$rating)^2)
+gam.error
+```
+
+
+
 ------------------------------------------------------------
 Model                     Test MSE
 ------------------------- ----------------------------------
