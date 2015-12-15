@@ -551,3 +551,24 @@ smoothing.error
 ```
 
 [^1]: Check code annex for details.
+------------------------------------------------------------
+Model                     Test MSE
+------------------------- ----------------------------------
+Linear Regression           0.981
+- using subset selection
+- with log(votes)
+
+Polynomial Regression       8.334
+- with votes       
+
+Polynomial Regresssion      0.937
+- using subset selection
+ 
+Spline                      4.449
+
+GAM                         0.944
+- smoothing splines         
+
+GAM                         0.974
+- natural splines
+------------------------------------------------------------
