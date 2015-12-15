@@ -565,8 +565,8 @@ smoothing.error
 ### General Additive Models (GAMs)
 We will now explore General Additive Models (GAMs). These extend the multiple linear regression model by allowing non-linear functions of each variable. We calculate a different function for each variable, and add together all of their contributions. This results in potentially more accurate predictions for our response variable, the movie rating. Furthermore, since the model is additive, we can interpret the effects of each variable on the movie rating.    
 
-#### GAM with Smoothing Spline
-We use the predictors that were chosen in the best subset selection: year, length, votes, Animation, Comedy, Drama, and adjBudget. We use the 'gam' package in R to fit the models.
+#### GAM with Smoothing Splines
+We use the predictors that were chosen in the best subset selection: year, length, votes, Animation, Comedy, Drama, and adjBudget. We use the 'gam' package in R to fit the models. This software relies on the backfitting method to fit the model.
 ```{r}
 fit.1 = gam(rating ~ year + length + votes + Animation + Comedy + Drama + adjBudget, data = movies)
 fit.2 = gam(rating ~ s(year, df = 4) + length + votes + Animation + Comedy + Drama + adjBudget, data = movies)
@@ -627,14 +627,21 @@ gam.error = mean((gam.test - test.set$rating)^2)
 gam.error
 ```
 
-Based on the ANOVA table, the best GAM that uses smoothing splines and the logarithmic votes is the most complex, with a spline for year, length, log(votes), and adjBudget. It has a test MSE of 0.937. This is slightly better than the test MSE for the identical model with normal votes instead of log(votes), which had a test MSE of 0.944.
+Based on the results from ANOVA, the best GAM that uses smoothing splines and the logarithmic votes is the most complex, with a spline for year, length, log(votes), and adjBudget. It has a test MSE of 0.937. This is slightly better than the test MSE for the identical model with normal votes instead of log(votes), which had a test MSE of 0.944.
 
 ```{r}
 par(mfrow = c(1,7))
 plot(fit.5, se=TRUE, col="red")
 ```
 
-The plot of our GAM displays a plot for each variable, showing its individual contribution to the additive model. The standard errors are repressented by the dotted lines.
+We display a plot for each variable in our GAM, showing its individual contribution to the additive model. The standard errors are repressented by the dotted lines.
+
+Plots of the relationship between each feature and the response, movie ratings, in the fitted GAM. Each plot displays the fitted function and pointwise standard errors. The first three functions are smoothing splines in year, length, and logarithm votes, with four degrees of freedom. The fourth, fifth, and sixth plots display the qualitative variables Animation, Comedy, and Drama, respectively. The rightmost function is the smoothing spline in budget. 
+
+If we hold all variables constant except for the year, the leftmost plot tells us that the rating decreases with the year. The second plot tells us that holding all variables fixed except for length, the movie rating increases until approximately 250 minutes, and then begins to decrease. Other interpretations:
+* Holding all of our predictors fixed except for votes, the movie rating increases with the number of votes.
+* Holding all factors fixed except for budget, as the budget increases, the movie rating decreases. However, note the larger standard errors here.
+* Animation, Comedy, and Drama each contributes to an increase in movie rating, which supports our correlation analysis
 
 #### GAM with Natural Splines and Logarithm of Votes
 ```{r}
@@ -655,7 +662,7 @@ gam.error
 
 The best GAM that uses natural splines and logarithmic votes has a test MSE of 0.980, making it the least accurate of the GAMs.
 
-We conclude that the GAM with smoothing splines is the best model for predicting the rating of a movie. Furthermore, taking the logarithm of the votes provides a slight improvement to the accuracy of the model; however, the benefit of the logarithm was more substatial in our linear models.
+We conclude that the GAM with smoothing splines is the best model for predicting the rating of a movie. Furthermore, taking the logarithm of the votes provides a slight improvement to the accuracy of the model; however, the benefit of the logarithm was more substantial in our linear models.
 
 # Conclusion
 
