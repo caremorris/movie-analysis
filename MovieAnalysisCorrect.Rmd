@@ -7,7 +7,7 @@ author:
 - Manuel Rueda (mr3523)
 date: "December 15, 2015"
 abstract: |
-  In this analysis we take IMDB's movie rating and descriptive data, combine it with the Academy Awards' Best Picture nominations, and try to derive a model to predict highly rated movies. For this we test linear, polynomial, splines and General Additive Models. We identify our dataset as complex one to work with, so more flexible models performed better. In terms of inference, we found the number of votes was the best predictor, implying that more popular movies tend to be rated higher (or the other way around). Other variables such as the year of release, its length, budget and genre are also significantly related. Contrary to our expectations, 'Best Picture' nominations were not.
+  In this analysis, we take IMDB's movie rating and descriptive data, combine it with the Academy Awards Best Picture nominations, and derive a model to predict highly rated movies. For this we test linear, polynomial, splines and General Additive Models. We identify our dataset as a complex one to model, so more flexible models performed better. In terms of inference, we found the number of votes was the best predictor, implying that more popular movies tend to be rated higher (or the other way around). Other variables such as the year of release, its length, budget and genre are also significantly related. Contrary to our expectations, 'Best Picture' nominations were not.
 output: pdf_document
 fontsize: 9pt
 geometry: margin=0.8in
@@ -48,7 +48,7 @@ movies[!is.na(match(gsub(", The", "", gsub('"', '', movies$title)), gsub("The ",
 
 #Data Sources
 
-Our dataset consists on movie rating and budget data for 5,183 films, scraped from the [Internet Movie Database](http://www.imdb.com/interfaces/) FTP site, paired with a historical list of Academy Awards Best Picture Nominations, retrieved from [Agg Data](https://www.aggdata.com/awards/oscar). Both data sources are legally made available to the general public. For our analysis, we are interested in analyzing the interactions between IMDB ratings assigned by the general public and a list of other possible explanatory variables, which are listed on the following table.
+Our dataset consists of movie rating and budget data for 5,183 films, scraped from the [Internet Movie Database](http://www.imdb.com/interfaces/) FTP site, paired with a historical list of Academy Awards Best Picture Nominations, retrieved from [Agg Data](https://www.aggdata.com/awards/oscar). Both data sources are legally made available to the general public. For our analysis, we are interested in analyzing the interactions between IMDB ratings assigned by the general public and a list of other possible explanatory variables, which are listed on the following table.
 
 -------------------------------------------------------------
 Variable  Description
@@ -92,7 +92,7 @@ We see a couple of interesting things here:
   
 (1) 25% of the movies have received less than 70 *votes*. We will remove this lower quantile, as we want to focus our attention on those films for which a larger consensus has been reached.
 (2) In the *length* column (below), we can see a cluster of short films on the right hand side of the plots. They clearly have a different behavior than full-feature ones, so we will exclude them from the analysis.
-(3) The *mpaa* variable has 4 categorical variables, each corresponding to a rating. We will replace this with *mpnum* (0:N/A, 1:PG, 2:PG-13, 3:NC-17, 4:R).
+(3) The *mpaa* variable has 4 categorical variables, each corresponding to a rating (e.g. PG-13). We will replace this with *mpnum* (0:N/A, 1:PG, 2:PG-13, 3:NC-17, 4:R).
 (4) The *budget* variable is defined on US dollars, but has not been adjusted for inflation. We will retrieve the yearly Consumer Price Index (CPI) data to convert this series into real terms.
 
 ```{r Summary2, cache = T, fig.height=5.5}
@@ -148,14 +148,14 @@ corrplot(allCorr, method = "color", addCoef.col="black", order = "hclust", type=
 par(cex = cex.before)
 ```
 
-Here we can see a positive correlation between rating and *votes*, as well as rating and *nominated*. The correlation with *adjBudget* is surprisingly low, suggesting that this is not one of the main driving factors on explaining the user preference for a film. *Year* is also negatively correlated, although on the pairs plot this seems somewhat contradictory; the older movies have a rating concentration on the upper part of the expectrum. This is explained by the high density of recent movies that received rating: if we take the upper bound of ratings per year, we see that it increases with time:
+Here we can see a positive correlation between rating and *votes*, as well as rating and *nominated*. The correlation with *adjBudget* is surprisingly low, suggesting that this is not one of the main driving factors on explaining the user preference for a film. *Year* is also negatively correlated, although on the pairs plot this seems somewhat contradictory; the older movies have a rating concentration on the upper part of the spectrum. This is explained by the high density of recent movies that received rating: if we take the upper bound of ratings per year, we see that it increases with time:
   
 ```{r top RatingPerYear, fig.height=3}
 topRPY <- ddply(movies, "year", function(x) {max(x[3])})
 ggplot(topRPY, aes(x=year, y=V1)) + geom_line() + labs(x="Year", y="Top Rating")
 ```
 
-Finally we see *length* negatively correlated with *rating*, so we can expect longer movies to receive more love from the audience.
+Finally we see *length* positively correlated with *rating*, so we can expect longer movies to receive more love from the audience.
 
 Other interesting observations:
   
@@ -227,7 +227,7 @@ The main observations from this analysis:
 * Movies that have been nominated for Best Picture also tend to receive better ratings. `NA`'s appear because some genres have not received this nomination at all.
 
 ### Distribution of Ratings
-We have seen that ratings across different genres exhibit different correlations, and now we wish to investigate with more detail the distribution of votes among these different categories. First, we will comment on the median of this variable; can we say that it is below the centered-rating of 5 starts? A boxplot of the data and the **Sign-Test** can help us investigate this.
+We have seen that ratings across different genres exhibit different correlations, and now we wish to investigate with more detail the distribution of votes among these different categories. First, we will comment on the median of this variable; can we say that it is below the centered-rating of 5 stars? A box plot of the data and the **Sign-Test** can help us investigate this.
 
 For the Sign-Test, we will test the following hypothesis:
 
@@ -297,11 +297,11 @@ We have decided to take the second approach, since this way we don't reduce the 
 
 # Statistical Modeling of Ratings
 
-Having completed the exploratory analysis of the data, we proceed to apply a number of statistical modeling techniques to predict the response rating. We first divide our data set into a training set, using 80% of de data, and test set. We will start by applying best subset selection, and then we will fit several models. For each model, we will provide a brief explanation of the method and a summary of the results obtained. 
+Having completed the exploratory analysis of the data, we proceed to apply a number of statistical modeling techniques to predict the response rating. We first divide our data set into a training set, using 80% of the data, and test set. We will start by applying best subset selection, and then we will fit several models. For each model, we will provide a brief explanation of the method and a summary of the results obtained. 
 
 ## Best Subset Selection
 
-Given that we have $12$ predictors, we use **Best Subset Selection** to decide what variables to include. This meethod allows us to fit a separate least squares regression for each possible combination of the $12$ predictors. Hence, we will fit in total $2^{12} = 4096$ models and choose the one with smallest Test MSE. It is important to notice that if the number of predictors was greater, we would have used **Forward Subset Selection** due to the lower computational costs.
+Given that we have $12$ predictors, we use **Best Subset Selection** to decide what variables to include. This method allows us to fit a separate least squares regression for each possible combination of the $12$ predictors. Hence, we will fit in total $2^{12} = 4096$ models and choose the one with smallest Test MSE. It is important to notice that if the number of predictors was greater, we would have used **Forward Subset Selection** due to the lower computational costs.
 
 ```{r Best Subset Selection}
 #Create Training set
@@ -335,7 +335,7 @@ qplot(x = c(1:(dim(train.set)[2] - 2)), y = as.numeric(mse.test.errors), main = 
 
 ## Linear Regression
 
-Next, we present a summary of the regression using the model obtained using **Best Subset Selection** The  included variables are: year, length, votes, Animation, Comedy, Drama, and adjBudget. Somewhat surprisingly nominated was not found to be relevant, which could be explained by the fact that only a small fraction of the movies (5.66%) actually received a nomination.
+Next, we present a summary of the regression using the model obtained using **Best Subset Selection**. The included variables are: year, length, votes, Animation, Comedy, Drama, and adjBudget. Somewhat surprisingly, *nominated* was not found to be relevant, which could be explained by the fact that only a small fraction of the movies (5.66%) actually received a nomination.
 
 From the summary we observe the following points:
 
@@ -449,7 +449,7 @@ poly.error
 ```
 
 To compare how linear regression and the cubic polynomial models only using the logarithm of votes fit the data we plot both curves. 
-The first graph is produced by fitting a polynomial of degree 3, while the graph on the rigth is produced fitting a regular line. In both graphs, the blue line represents the fitted value from both models and the red lines an estimated 95% confidence interval.
+The first graph is produced by fitting a polynomial of degree 3, while the graph on the right is produced by fitting a regular line. In both graphs, the blue line represents the fitted value from both models and the red lines an estimated 95% confidence interval.
 It is very clear how the polynomial of degree 3 allows us to fit a more flexible curve that fits the data better.
 
 ```{r Votes P3 Details}
@@ -548,7 +548,7 @@ spline.error
 A natural spline is a regression spline with an additional constraint: the function is required to be linear in the boundaries. The advantage of using a natural cubic spline is that usually in the boundaries there are less points. Hence, a polynomial can be quite unstable in the boundaries. 
 
 
-Like before, we start by using cross validation to obtain the degrees of freedom which minimize the test error estimate.
+Like before, we start by using cross-validation to obtain the degrees of freedom which minimize the test error estimate.
 
 ```{r Splines Validation}
 set.seed(1)
@@ -713,7 +713,7 @@ par(mfrow = c(2,4))
 plot(fit.5, se=TRUE, col="red")
 ```
 
-The plot of our GAM displays a plot for each variable, showing its individual contribution to the additive model. The standard errors are repressented by the dotted lines.
+The plot of our GAM displays a plot for each variable, showing its individual contribution to the additive model. The standard errors are represented by the dotted lines.
 
 #### GAM with Natural Splines and Logarithm of Votes
 
@@ -735,7 +735,7 @@ gam.error
 
 The best GAM that uses natural splines and logarithmic votes has a test MSE of 0.980, making it the least accurate of the GAMs.
 
-We conclude that the GAM with smoothing splines is the best model for predicting the rating of a movie. Furthermore, taking the logarithm of the votes provides a slight improvement to the accuracy of the model; however, the benefit of the logarithm was more substatial in our linear models.
+We conclude that the GAM with smoothing splines is the best model for predicting the rating of a movie. Furthermore, taking the logarithm of the votes provides a slight improvement to the accuracy of the model; however, the benefit of the logarithm was more substantial in our linear and polynomial regression models.
 
 # Conclusion
 Now that we have performed exploratory analysis on our variables and fitted a number of linear and non-linear models to the data, we can derive some observations from it. First, below we present a summary of the fits on different models, sorted by ascending predicting power (Test MSE).
@@ -754,7 +754,7 @@ GAM (N. Spline) | *year, length, votes, Animation, Comedy, Drama, adjBudget* | 0
 GAM (S. Splines) | *year, length, votes, Animation, Comedy, Drama, adjBudget* | 0.943 | *n/a*
 GAM (S. Splines) | *year, length,* lg(*votes*)*, Animation, Comedy, Drama, adjBudget* | 0.937 | *n/a*
 
-Throughout this exercise we identified *votes* as the regressor with the greatest exploratory power on any given model, something we glipsed on back when we analyzed the correlation matrix. This variable alone, when regressed upon on the Smoothing Splines model, achieved a MSE test error of 1.456 and an $R^2$ of almost 20%, which is relatively high considering the complexity of the dataset.
+Throughout this exercise we identified *votes* as the regressor with the greatest exploratory power on any given model, something we noted when we analyzed the correlation matrix. This variable alone, when regressed upon on the Smoothing Splines model, achieved a MSE test error of 1.456 and an $R^2$ of almost 20%, which is relatively high considering the complexity of the dataset.
 
 If we incorporate more variables into our models, specifically those identified by the Best Subset Selection technique, we are able to enhance our predicting power significantly. This technique suggested utilizing a relatively large number of variables (7), which implies that our main concern with this dataset related to the *Bias* component of the MSE.
 
