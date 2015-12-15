@@ -77,7 +77,7 @@ genre     Binary variables indicating whether movie belongs
 # Exploratory Data Analysis
 
 ### Summary of Data
-Before begining with the formal statistical analysis, it is necessary to perform exploratory analysis on the data to identify possible patterns. We begin by looking at the summary information for each of the variables.
+Before beginning with the formal statistical analysis, it is necessary to perform exploratory analysis on the data to identify possible patterns. We begin by looking at the summary information for each of the variables.
 
 ```{r Summary1 Statistics}
 summary(movies)
@@ -88,9 +88,9 @@ genres <- c("Action", "Animation", "Comedy", "Drama", "Documentary", "Romance", 
 We see a couple of interesting things here:
 
 (1) 25% of the movies have received less than 70 *votes*. We will remove this lower quantile, as we want to focus our attention on those films for which a larger consensus has been reached.
-(2) On the *length* column (below), we can see a cluster of short films on the right hand side of the plots. They clearly have a different behavior than full-feature ones, so we will exclude them from the analysis.
+(2) In the *length* column (below), we can see a cluster of short films on the right hand side of the plots. They clearly have a different behavior than full-feature ones, so we will exclude them from the analysis.
 (3) The *mpaa* variable has 4 categorical variables, each corresponding to a rating. We will replace this with *mpnum* (0:N/A, 1:PG, 2:PG-13, 3:NC-17, 4:R).
-(4) The *budget* variable is defined on US dollars, but has not been adjusted for inflation. We will retrieve the yearly CPI data to convert this series into nominal terms.
+(4) The *budget* variable is defined on US dollars, but has not been adjusted for inflation. We will retrieve the yearly Consumer Price Index (CPI) data to convert this series into real terms.
 
 ```{r Summary2, cache = T}
 ggpairs(movies[,!names(movies) %in% c(genres, "title")], 
@@ -121,7 +121,7 @@ movies <- movies[, !names(movies) %in% c('Short')]
 movies <- movies[, !names(movies) %in% c('title')]
 ```
 
-After proceding with these changes, we identified one extreme outlier in terms of nominal budget: "Voyna i mir", or "War & Peace" (1966). Investigating this movie, we see that it was sponsored by the soviet party, which covered its stratosferical expenses. For the purposes of thie analysis, we will omit it from the sample.
+After proceeding with these changes, we identified one extreme outlier in terms of real budget: "Voyna i mir", or "War & Peace" (1966). Investigating this movie, we see that it was sponsored by the Soviet party, which covered its astronomical expenses. For the purposes of thie analysis, we will omit it from the sample.
 
 ```{r Voyna i mir, fig.width=6, fig.height=3}
 ggplot(data=movies, aes(adjBudget, votes)) + geom_point() + labs(x = "Adj. Budget", y = "Votes")
@@ -147,7 +147,7 @@ corrplot(allCorr, method = "color", addCoef.col="black", order = "hclust", type=
 par(cex = cex.before)
 ```
 
-Here we can see a positive correlation between rating and: *votes* & *nominated*. The correlation with *adjBudget* is surprisingly low, suggesting that this is not one of the main driving factors on explaining the user preference for a film.
+Here we can see a positive correlation between rating and *votes*, as well as rating and *nominated*. The correlation with *adjBudget* is surprisingly low, suggesting that this is not one of the main driving factors on explaining the user preference for a film.
 
 Other interesting observations:
 
@@ -157,7 +157,7 @@ Other interesting observations:
 
 * Dramas and Comedies don't tend to go together, while Comedies and Romance are a frequent mix (Rom-Coms).
 
-We are however mostly interested in how the IMDB rating of a movie can be predicted utilizing the rest of the variables, so we will restrict our atention to these specific interactions. An interesting excercise is to investigate how the rates correlate with the rest of the variables, particularly the most significant ones (*votes, adjBudget & nominations*) when splitting the dataset by genre, and for this we will make use of the **Test of Independence**, defined in the following way:
+We are however mostly interested in how the IMDB rating of a movie can be predicted utilizing the rest of the variables, so we will restrict our attention to these specific interactions. An interesting excercise is to investigate how the ratings correlate with the rest of the variables, particularly the most significant ones (*votes, adjBudget, & nominations*) when splitting the dataset by genre, and for this we will make use of the **Test of Independence**, which is defined as follows:
 
 *Let $X$ and $Y$ have a bivariate normal distribution with means $\mu_1$ and $\mu_2$, positive variances $\sigma_1^2$ and $\sigma_2^2$, and correlation coefficient $\rho$. We wish to test the hypothesis that $X$ and $Y$ are independent.* We will use $R$, the sample estimate of $\rho$, to test the null hypothesis $H_0:\rho = 0$ against the alternative $H_1:\rho \neq 0$. For this we build the following statistic, which has a *t*-distribution with $n-2$ degrees of freedom.
 
@@ -214,7 +214,7 @@ The main observations from this analysis:
 
 * The number of votes are highly correlated with the movie rating in all cases, except documentaries, where we have few observations.
 
-* Action and Animation movies tend to perform better in terms of rating when they have a higher rating. This is in line with our previous observations.
+* Action and Animation movies tend to perform better in terms of rating when they have a higher budget. This is in line with our previous observations.
 
 * Movies that have been nominated for Best Picture also tend to receive better ratings. `NA`'s appear because some genres have not received this nomination at all.
 
@@ -277,7 +277,7 @@ w <- wilcox.test(rating ~ genre, data=molten[molten$genre %in% c("Action","Comed
 cbind(w$statistic, w$p.value)
 ```
 
-First, looking at Drama and Comedy, we see that indeed their distributions are statistically significant, which was also suggested by the box-plots, and we can relate back to the negative correlation observed between the variables (i.e. few Dramatic Comedies exist). Romance and Comedy however do tend to go together, but still the WHM test show us that their distributions are different. Even for Action and Comedy, two genres on which the box-plot distributions suggest a similar distribution, we only find the null hypothesis significant at an $\alpha=0.01$.
+First, looking at Drama and Comedy, we see that indeed their distributions are statistically different, which was also suggested by the box plots, and we can relate back to the negative correlation observed between the variables (i.e. few Dramatic Comedies exist). Romance and Comedy however do tend to go together, but still the WHM test shows us that their distributions are different. Even for Action and Comedy, two genres on which the box plot suggest a similar distribution, we do not find the null hypothesis significant at $\alpha=0.01$.
 
 Given this, it is convenient to keep a distintion between movies of different categories. There are two ways to achieve this:
 
